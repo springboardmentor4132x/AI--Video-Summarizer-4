@@ -1,278 +1,94 @@
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
 function Dashboard() {
   const navigate = useNavigate();
 
+  const name =
+    localStorage.getItem("loggedInUserName") || "User";
+
+  const role =
+    localStorage.getItem("loggedInUserRole") || "User";
+
+  const handleLogout = () => {
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("loggedInUserName");
+    localStorage.removeItem("loggedInUserRole");
+
+    navigate("/login");
+  };
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f4f7fb",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      {/* HEADER */}
-      <header
-        style={{
-          background: "white",
-          padding: "18px 40px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h2 style={{ margin: 0 }}>
-          🎬 ClipMind
-        </h2>
+    <div style={pageStyle}>
+
+      {/* Header */}
+      <header style={headerStyle}>
+        <h2>AI Video Summarizer</h2>
 
         <button
-          onClick={() => navigate("/login")}
-          style={{
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#ef4444",
-            color: "white",
-            cursor: "pointer",
-          }}
+          onClick={handleLogout}
+          style={logoutButton}
         >
           Logout
         </button>
       </header>
 
-      {/* MAIN CONTENT */}
-      <main
-        style={{
-          maxWidth: "1100px",
-          margin: "auto",
-          padding: "40px 25px",
-        }}
-      >
+      {/* Main */}
+      <main style={mainStyle}>
 
-        {/* WELCOME */}
-        <div>
-          <h1>Welcome to ClipMind 👋</h1>
+        <h1>Welcome, {name}!</h1>
 
-          <p style={{ color: "#666", fontSize: "17px" }}>
-            Your AI-powered video summarization workspace.
-          </p>
-        </div>
+        <p style={roleStyle}>
+          Role: {role}
+        </p>
 
-        {/* STAT CARDS */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "20px",
-            marginTop: "35px",
-          }}
-        >
+        <p>
+          Welcome to your AI Video Summarization Dashboard.
+        </p>
 
-          {/* TOTAL VIDEOS */}
+        {/* Navigation Cards */}
+        <div style={gridStyle}>
+
           <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              boxShadow: "0 5px 15px rgba(0,0,0,0.08)",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>🎥</div>
-
-            <h3>Total Videos</h3>
-
-            <h2>12</h2>
-
-            <p style={{ color: "#777" }}>
-              Videos uploaded
-            </p>
-          </div>
-
-          {/* COMPLETED */}
-          <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              boxShadow: "0 5px 15px rgba(0,0,0,0.08)",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>✅</div>
-
-            <h3>Completed</h3>
-
-            <h2>9</h2>
-
-            <p style={{ color: "#777" }}>
-              Summaries generated
-            </p>
-          </div>
-
-          {/* PROCESSING */}
-          <div
-            style={{
-              background: "white",
-              padding: "25px",
-              borderRadius: "15px",
-              boxShadow: "0 5px 15px rgba(0,0,0,0.08)",
-            }}
-          >
-            <div style={{ fontSize: "30px" }}>⏳</div>
-
-            <h3>Processing</h3>
-
-            <h2>3</h2>
-
-            <p style={{ color: "#777" }}>
-              Videos being processed
-            </p>
-          </div>
-
-        </div>
-
-        {/* QUICK ACTIONS */}
-        <h2 style={{ marginTop: "45px" }}>
-          Quick Actions
-        </h2>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "20px",
-            marginTop: "20px",
-          }}
-        >
-
-          {/* UPLOAD */}
-          <div
+            style={cardStyle}
             onClick={() => navigate("/upload")}
-            style={{
-              background: "#2563eb",
-              color: "white",
-              padding: "30px",
-              borderRadius: "15px",
-              cursor: "pointer",
-              textAlign: "center",
-            }}
           >
-            <div style={{ fontSize: "40px" }}>
-              📤
-            </div>
-
-            <h3>Upload Video</h3>
-
+            <h2>🎥 Upload Video</h2>
             <p>
-              Upload a new video for AI summarization.
+              Upload a video for AI processing.
             </p>
+
+            <button style={buttonStyle}>
+              Upload Video
+            </button>
           </div>
 
-          {/* HISTORY */}
           <div
+            style={cardStyle}
             onClick={() => navigate("/history")}
-            style={{
-              background: "white",
-              padding: "30px",
-              borderRadius: "15px",
-              cursor: "pointer",
-              textAlign: "center",
-              boxShadow: "0 5px 15px rgba(0,0,0,0.08)",
-            }}
           >
-            <div style={{ fontSize: "40px" }}>
-              📚
-            </div>
-
-            <h3>Upload History</h3>
-
-            <p style={{ color: "#666" }}>
-              View your previous uploaded videos.
+            <h2>📁 Upload History</h2>
+            <p>
+              View your previously uploaded videos.
             </p>
+
+            <button style={buttonStyle}>
+              View History
+            </button>
           </div>
 
-          {/* PROCESSING */}
           <div
+            style={cardStyle}
             onClick={() => navigate("/processing")}
-            style={{
-              background: "white",
-              padding: "30px",
-              borderRadius: "15px",
-              cursor: "pointer",
-              textAlign: "center",
-              boxShadow: "0 5px 15px rgba(0,0,0,0.08)",
-            }}
           >
-            <div style={{ fontSize: "40px" }}>
-              ⚙️
-            </div>
-
-            <h3>Processing Status</h3>
-
-            <p style={{ color: "#666" }}>
-              Check the status of your videos.
+            <h2>⚙️ Processing Status</h2>
+            <p>
+              Check the processing status of your video.
             </p>
-          </div>
 
-        </div>
-
-        {/* RECENT VIDEOS */}
-        <h2 style={{ marginTop: "45px" }}>
-          Recent Videos
-        </h2>
-
-        <div
-          style={{
-            background: "white",
-            borderRadius: "15px",
-            padding: "20px",
-            marginTop: "20px",
-            boxShadow: "0 5px 15px rgba(0,0,0,0.08)",
-          }}
-        >
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "15px",
-              borderBottom: "1px solid #eee",
-            }}
-          >
-            <span>🎥 Lecture.mp4</span>
-
-            <span style={{ color: "green" }}>
-              ✓ Completed
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "15px",
-              borderBottom: "1px solid #eee",
-            }}
-          >
-            <span>🎥 Project Meeting.mp4</span>
-
-            <span style={{ color: "#f59e0b" }}>
-              ⏳ Processing
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "15px",
-            }}
-          >
-            <span>🎥 Tutorial.mp4</span>
-
-            <span style={{ color: "green" }}>
-              ✓ Completed
-            </span>
+            <button style={buttonStyle}>
+              View Status
+            </button>
           </div>
 
         </div>
@@ -281,5 +97,67 @@ function Dashboard() {
     </div>
   );
 }
+
+/* ---------- STYLES ---------- */
+
+const pageStyle = {
+  minHeight: "100vh",
+  backgroundColor: "#f5f7fb",
+  fontFamily: "Arial, sans-serif",
+};
+
+const headerStyle = {
+  backgroundColor: "white",
+  padding: "20px 40px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+};
+
+const logoutButton = {
+  padding: "10px 20px",
+  backgroundColor: "#dc2626",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
+
+const mainStyle = {
+  padding: "50px",
+  textAlign: "center",
+};
+
+const roleStyle = {
+  color: "#3157d5",
+  fontWeight: "bold",
+};
+
+const gridStyle = {
+  display: "flex",
+  justifyContent: "center",
+  gap: "25px",
+  marginTop: "40px",
+  flexWrap: "wrap",
+};
+
+const cardStyle = {
+  width: "250px",
+  padding: "30px",
+  backgroundColor: "white",
+  borderRadius: "12px",
+  boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+  cursor: "pointer",
+};
+
+const buttonStyle = {
+  padding: "10px 20px",
+  backgroundColor: "#3157d5",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
 
 export default Dashboard;

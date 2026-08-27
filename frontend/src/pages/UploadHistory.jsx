@@ -1,214 +1,172 @@
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function UploadHistory() {
   const navigate = useNavigate();
+  const [history, setHistory] = useState([]);
 
-  const videos = [
-    {
-      name: "Lecture.mp4",
-      date: "25 Aug 2026",
-      status: "Completed",
-    },
-    {
-      name: "Project Meeting.mp4",
-      date: "24 Aug 2026",
-      status: "Processing",
-    },
-    {
-      name: "Tutorial.mp4",
-      date: "23 Aug 2026",
-      status: "Completed",
-    },
-  ];
+  useEffect(() => {
+    const email = localStorage.getItem("loggedInUser");
+
+    if (!email) {
+      navigate("/login");
+      return;
+    }
+
+    const key = `uploadHistory_${email}`;
+    const saved = localStorage.getItem(key);
+
+    if (saved) {
+      setHistory(JSON.parse(saved));
+    } else {
+      setHistory([]);
+    }
+  }, [navigate]);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f4f7fb",
-        fontFamily: "Arial, sans-serif",
-        padding: "30px",
-      }}
-    >
-      {/* HEADER */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "40px",
-        }}
-      >
-        <h1>🎬 ClipMind</h1>
+    <div style={styles.page}>
+      <div style={styles.container}>
 
-        <button
-          onClick={() => navigate("/dashboard")}
-          style={{
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#2563eb",
-            color: "white",
-            cursor: "pointer",
-          }}
-        >
-          Dashboard
-        </button>
-      </div>
+        <h1>📁 Upload History</h1>
 
-      {/* PAGE TITLE */}
-      <div style={{ textAlign: "center", marginBottom: "30px" }}>
-        <h2>Upload History</h2>
-
-        <p style={{ color: "#666" }}>
-          View your previously uploaded videos and their status.
+        <p style={styles.subtitle}>
+          Your uploaded videos
         </p>
-      </div>
 
-      {/* HISTORY TABLE */}
-      <div
-        style={{
-          maxWidth: "900px",
-          margin: "auto",
-          background: "white",
-          borderRadius: "15px",
-          padding: "25px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-          overflowX: "auto",
-        }}
-      >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-          }}
-        >
-          <thead>
-            <tr>
-              <th
-                style={{
-                  textAlign: "left",
-                  padding: "15px",
-                  borderBottom: "2px solid #eee",
-                }}
+        {history.length === 0 ? (
+          <div style={styles.empty}>
+            <div style={styles.bigIcon}>🎬</div>
+
+            <h2>No videos uploaded yet</h2>
+
+            <p>
+              Your uploaded videos will appear here.
+            </p>
+          </div>
+        ) : (
+          <div>
+            {history.map((video) => (
+              <div
+                key={video.id}
+                style={styles.video}
               >
-                Video Name
-              </th>
+                <div style={styles.videoName}>
+                  🎥 {video.filename}
+                </div>
 
-              <th
-                style={{
-                  textAlign: "left",
-                  padding: "15px",
-                  borderBottom: "2px solid #eee",
-                }}
-              >
-                Upload Date
-              </th>
+                <div>
+                  Upload Date: {video.uploadDate}
+                </div>
 
-              <th
-                style={{
-                  textAlign: "left",
-                  padding: "15px",
-                  borderBottom: "2px solid #eee",
-                }}
-              >
-                Status
-              </th>
-
-              <th
-                style={{
-                  textAlign: "left",
-                  padding: "15px",
-                  borderBottom: "2px solid #eee",
-                }}
-              >
-                Action
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {videos.map((video, index) => (
-              <tr key={index}>
-                <td
-                  style={{
-                    padding: "15px",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  🎥 {video.name}
-                </td>
-
-                <td
-                  style={{
-                    padding: "15px",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {video.date}
-                </td>
-
-                <td
-                  style={{
-                    padding: "15px",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {video.status === "Completed" ? (
-                    <span style={{ color: "green" }}>
-                      ✓ Completed
-                    </span>
-                  ) : (
-                    <span style={{ color: "#f59e0b" }}>
-                      ⏳ Processing
-                    </span>
-                  )}
-                </td>
-
-                <td
-                  style={{
-                    padding: "15px",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  <button
-                    onClick={() => navigate("/processing")}
-                    style={{
-                      padding: "8px 12px",
-                      border: "none",
-                      borderRadius: "6px",
-                      background: "#2563eb",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                  >
-                    View
-                  </button>
-                </td>
-              </tr>
+                <div style={styles.status}>
+                  {video.status === "Completed"
+                    ? "✓ Completed"
+                    : video.status === "Failed"
+                    ? "✕ Failed"
+                    : "⏳ Processing"}
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        )}
 
-      {/* BACK BUTTON */}
-      <div style={{ textAlign: "center", marginTop: "30px" }}>
-        <button
-          onClick={() => navigate("/dashboard")}
-          style={{
-            padding: "12px 25px",
-            border: "1px solid #2563eb",
-            borderRadius: "8px",
-            background: "white",
-            color: "#2563eb",
-            cursor: "pointer",
-          }}
-        >
-          ← Back to Dashboard
-        </button>
+        <div style={styles.buttons}>
+
+          <button
+            onClick={() => navigate("/dashboard")}
+            style={styles.dashboardButton}
+          >
+            ← Dashboard
+          </button>
+
+          <button
+            onClick={() => navigate("/upload")}
+            style={styles.uploadButton}
+          >
+            🎥 Upload Video
+          </button>
+
+        </div>
+
       </div>
     </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f1f5f9",
+    padding: "40px",
+    fontFamily: "Arial, sans-serif"
+  },
+
+  container: {
+    maxWidth: "900px",
+    margin: "0 auto",
+    background: "white",
+    padding: "40px",
+    borderRadius: "15px",
+    boxShadow: "0 5px 20px rgba(0,0,0,0.08)"
+  },
+
+  subtitle: {
+    color: "#64748b",
+    marginBottom: "30px"
+  },
+
+  empty: {
+    textAlign: "center",
+    padding: "50px 20px",
+    border: "2px dashed #cbd5e1",
+    borderRadius: "12px"
+  },
+
+  bigIcon: {
+    fontSize: "50px"
+  },
+
+  video: {
+    padding: "20px",
+    marginBottom: "15px",
+    background: "#f8fafc",
+    borderRadius: "10px",
+    border: "1px solid #e2e8f0"
+  },
+
+  videoName: {
+    fontSize: "18px",
+    fontWeight: "bold",
+    marginBottom: "10px"
+  },
+
+  status: {
+    marginTop: "10px",
+    fontWeight: "bold"
+  },
+
+  buttons: {
+    display: "flex",
+    gap: "15px",
+    marginTop: "30px"
+  },
+
+  dashboardButton: {
+    padding: "12px 20px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#e2e8f0",
+    cursor: "pointer"
+  },
+
+  uploadButton: {
+    padding: "12px 20px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#3157d5",
+    color: "white",
+    cursor: "pointer"
+  }
+};
 
 export default UploadHistory;

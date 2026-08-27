@@ -1,53 +1,133 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Register() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("");
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleRegister = (e) => {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
+    setError("");
+    setSuccess("");
+
+    // Validate full name
+    if (!fullName.trim()) {
+      setError("Please enter your full name.");
       return;
     }
 
-    alert("Account created successfully!");
+    // Validate email
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
 
-    navigate("/login");
+    if (!email.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    // Validate password
+    if (!password) {
+      setError("Please enter a password.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must contain at least 6 characters.");
+      return;
+    }
+
+    // Validate confirm password
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    // Validate role
+    if (!role) {
+      setError("Please select a role.");
+      return;
+    }
+
+    /*
+      Get existing registered users
+    */
+    const existingUsers = JSON.parse(
+      localStorage.getItem("registeredUsers") || "[]"
+    );
+
+    /*
+      Check whether email already exists
+    */
+    const emailExists = existingUsers.some(
+      (user) =>
+        user.email.toLowerCase() ===
+        email.trim().toLowerCase()
+    );
+
+    if (emailExists) {
+      setError(
+        "This email is already registered. Please use a different email."
+      );
+      return;
+    }
+
+    /*
+      Create new user
+    */
+    const newUser = {
+      id: Date.now(),
+      fullName: fullName.trim(),
+      email: email.trim().toLowerCase(),
+      password: password,
+      role: role,
+    };
+
+    /*
+      Add user to registered users
+    */
+    existingUsers.push(newUser);
+
+    localStorage.setItem(
+      "registeredUsers",
+      JSON.stringify(existingUsers)
+    );
+
+    setSuccess(
+      "Registration successful! Please login."
+    );
+
+    // Clear form
+    setFullName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setRole("");
+
+    // Go to login
+    setTimeout(() => {
+      navigate("/login");
+    }, 1000);
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "#f4f7fb",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: "400px",
-          background: "white",
-          padding: "40px",
-          borderRadius: "20px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-        }}
-      >
-        <h1 style={{ textAlign: "center" }}>🎬 ClipMind</h1>
+    <div style={pageStyle}>
+      <div style={cardStyle}>
 
-        <h2>Create Account</h2>
+        <h1>Registration</h1>
 
-        <p style={{ color: "#666" }}>
-          Create your account to start summarizing videos.
+        <p style={subtitleStyle}>
+          Create your account
         </p>
 
         <form onSubmit={handleRegister}>
@@ -56,116 +136,184 @@ function Register() {
 
           <input
             type="text"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "8px",
-              marginBottom: "18px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-            }}
+            placeholder="Enter full name"
+            value={fullName}
+            onChange={(e) =>
+              setFullName(e.target.value)
+            }
+            style={inputStyle}
           />
 
           <label>Email</label>
 
           <input
             type="email"
-            placeholder="Enter your email"
+            placeholder="Enter email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "8px",
-              marginBottom: "18px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-            }}
+            onChange={(e) =>
+              setEmail(e.target.value)
+            }
+            style={inputStyle}
           />
 
           <label>Password</label>
 
           <input
             type="password"
-            placeholder="Create a password"
+            placeholder="Enter password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "8px",
-              marginBottom: "18px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-            }}
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
+            style={inputStyle}
           />
 
           <label>Confirm Password</label>
 
           <input
             type="password"
-            placeholder="Confirm your password"
+            placeholder="Confirm password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginTop: "8px",
-              marginBottom: "25px",
-              boxSizing: "border-box",
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-            }}
+            onChange={(e) =>
+              setConfirmPassword(e.target.value)
+            }
+            style={inputStyle}
           />
+
+          <label>Role</label>
+
+          <select
+            value={role}
+            onChange={(e) =>
+              setRole(e.target.value)
+            }
+            style={inputStyle}
+          >
+            <option value="">
+              Select Role
+            </option>
+
+            <option value="Content Creator">
+              Content Creator
+            </option>
+
+            <option value="Learner">
+              Learner
+            </option>
+
+            <option value="Educator">
+              Educator
+            </option>
+
+            <option value="Administrator">
+              Administrator
+            </option>
+          </select>
+
+          {error && (
+            <p style={errorStyle}>
+              ❌ {error}
+            </p>
+          )}
+
+          {success && (
+            <p style={successStyle}>
+              ✓ {success}
+            </p>
+          )}
 
           <button
             type="submit"
-            style={{
-              width: "100%",
-              padding: "13px",
-              background: "#2563eb",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "16px",
-              cursor: "pointer",
-            }}
+            style={buttonStyle}
           >
-            Create Account
+            Register
           </button>
 
         </form>
 
-        <p style={{ textAlign: "center", marginTop: "25px" }}>
-          Already have an account?{" "}
-
-          <button
-            onClick={() => navigate("/login")}
-            style={{
-              border: "none",
-              background: "none",
-              color: "#2563eb",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Login
-          </button>
+        <p>
+          Already have an account?
         </p>
+
+        <button
+          onClick={() => navigate("/login")}
+          style={secondaryButton}
+        >
+          Go to Login
+        </button>
 
       </div>
     </div>
   );
 }
+
+const pageStyle = {
+  minHeight: "100vh",
+  backgroundColor: "#f5f7fb",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: "30px",
+  fontFamily: "Arial, sans-serif",
+};
+
+const cardStyle = {
+  width: "420px",
+  backgroundColor: "white",
+  padding: "35px",
+  borderRadius: "12px",
+  boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+};
+
+const subtitleStyle = {
+  textAlign: "center",
+  color: "#666",
+  marginBottom: "25px",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px",
+  marginTop: "7px",
+  marginBottom: "18px",
+  border: "1px solid #ccc",
+  borderRadius: "6px",
+  boxSizing: "border-box",
+  fontSize: "15px",
+};
+
+const errorStyle = {
+  color: "#dc2626",
+  backgroundColor: "#fee2e2",
+  padding: "10px",
+  borderRadius: "6px",
+};
+
+const successStyle = {
+  color: "#15803d",
+  backgroundColor: "#dcfce7",
+  padding: "10px",
+  borderRadius: "6px",
+};
+
+const buttonStyle = {
+  width: "100%",
+  padding: "12px",
+  backgroundColor: "#3157d5",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontSize: "16px",
+};
+
+const secondaryButton = {
+  width: "100%",
+  padding: "12px",
+  backgroundColor: "#eeeeee",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
 
 export default Register;
