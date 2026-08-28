@@ -7,8 +7,13 @@ function ProcessingStatus() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Read the video ID from the URL first, then use router state/localStorage as fallback.
+  const searchParams = new URLSearchParams(location.search);
+
   const [videoId, setVideoId] = useState(
-    location.state?.videoId ||
+    searchParams.get("videoId") ||
+      searchParams.get("id") ||
+      location.state?.videoId ||
       localStorage.getItem("currentVideoId") ||
       ""
   );
@@ -82,6 +87,21 @@ function ProcessingStatus() {
   }, [videoId, token, navigate]);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const queryVideoId =
+      params.get("videoId") ||
+      params.get("id");
+
+    if (queryVideoId) {
+      localStorage.setItem(
+        "currentVideoId",
+        queryVideoId
+      );
+
+      setVideoId(queryVideoId);
+      return;
+    }
+
     if (location.state?.videoId) {
       localStorage.setItem(
         "currentVideoId",
@@ -90,7 +110,7 @@ function ProcessingStatus() {
 
       setVideoId(location.state.videoId);
     }
-  }, [location.state]);
+  }, [location.search, location.state]);
 
   useEffect(() => {
     loadStatus();
