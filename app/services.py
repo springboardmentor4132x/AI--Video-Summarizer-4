@@ -1,7 +1,7 @@
 import os
 import subprocess
-import tempfile
 
+from openai import OpenAI
 import whisper
 
 from app.core.config import settings
@@ -18,6 +18,48 @@ def get_whisper_model():
         _whisper_model = whisper.load_model("base")
 
     return _whisper_model
+
+
+def get_openai_client():
+    if not settings.OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is not configured.")
+
+    return OpenAI(api_key=settings.OPENAI_API_KEY)
+
+
+async def update_progress(
+    video: Video,
+    *,
+    status: str | None = None,
+    current_stage: str | None = None,
+    progress: int | None = None,
+    upload_progress: int | None = None,
+    audio_progress: int | None = None,
+    transcription_progress: int | None = None,
+    summary_progress: int | None = None,
+):
+    if status is not None:
+        video.status = status
+
+    if current_stage is not None:
+        video.current_stage = current_stage
+
+    if progress is not None:
+        video.progress = progress
+
+    if upload_progress is not None:
+        video.upload_progress = upload_progress
+
+    if audio_progress is not None:
+        video.audio_progress = audio_progress
+
+    if transcription_progress is not None:
+        video.transcription_progress = transcription_progress
+
+    if summary_progress is not None:
+        video.summary_progress = summary_progress
+
+    await video.save()
 
 
 def extract_audio(video_path: str) -> str:
@@ -50,32 +92,162 @@ def extract_audio(video_path: str) -> str:
 
 def transcribe_audio(audio_path: str) -> str:
     model = get_whisper_model()
+
     result = model.transcribe(audio_path)
+
     return result["text"].strip()
+
+
+def generate_summary(transcript: str) -> str:
+    if not transcript.strip():
+        return "No speech was detected in the video."
+
+    client = get_openai_client()
+
+    response = client.responses.create(
+        model="gpt-4o-mini",
+        input=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert video summarization assistant. "
+                    "Create a clear, accurate and useful summary from "
+                    "the provided transcript. Do not invent information "
+                    "that is not present in the transcript."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Summarize this video transcript.\n\n"
+                    "Provide:\n"
+                    "1. A short overview in 2-3 sentences.\n"
+                    "2. The main points as bullet points.\n"
+                    "3. Important details or conclusions.\n\n"
+                    f"Transcript:\n{transcript}"
+                ),
+            },
+        ],
+    )
+
+    summary = response.output_text.strip()
+
+    if not summary:
+        raise RuntimeError("AI returned an empty summary.")
+
+    return summary
 
 
 async def process_video(video: Video) -> None:
     audio_path = None
 
     try:
-        video.status = "processing"
-        video.error_message = ""
-        await video.save()
+        # ---------------------------------------------
+        # STEP 1 — PROCESSING STARTED
+        # ---------------------------------------------
+
+        await update_progress(
+            video,
+            status="processing",
+            current_stage="audio",
+            progress=10,
+            upload_progress=100,
+            audio_progress=0,
+            transcription_progress=0,
+            summary_progress=0,
+        )
+
+        # ---------------------------------------------
+        # STEP 2 — AUDIO EXTRACTION
+        # ---------------------------------------------
+
+        await update_progress(
+            video,
+            current_stage="audio",
+            progress=20,
+            audio_progress=10,
+        )
 
         audio_path = extract_audio(video.file_path)
+
+        await update_progress(
+            video,
+            current_stage="audio",
+            progress=40,
+            audio_progress=100,
+        )
+
+        # ---------------------------------------------
+        # STEP 3 — WHISPER TRANSCRIPTION
+        # ---------------------------------------------
+
+        await update_progress(
+            video,
+            current_stage="transcription",
+            progress=50,
+            transcription_progress=10,
+        )
 
         transcript = transcribe_audio(audio_path)
 
         video.transcript = transcript
-        video.status = "done"
-        await video.save()
+
+        await update_progress(
+            video,
+            current_stage="transcription",
+            progress=75,
+            transcription_progress=100,
+        )
+
+        # ---------------------------------------------
+        # STEP 4 — AI SUMMARY
+        # ---------------------------------------------
+
+        await update_progress(
+            video,
+            current_stage="summary",
+            progress=80,
+            summary_progress=10,
+        )
+
+        summary = generate_summary(transcript)
+
+        video.summary = summary
+
+        await update_progress(
+            video,
+            current_stage="summary",
+            progress=95,
+            summary_progress=100,
+        )
+
+        # ---------------------------------------------
+        # STEP 5 — COMPLETED
+        # ---------------------------------------------
+
+        await update_progress(
+            video,
+            status="done",
+            current_stage="done",
+            progress=100,
+            upload_progress=100,
+            audio_progress=100,
+            transcription_progress=100,
+            summary_progress=100,
+        )
 
     except Exception as exc:
         video.status = "failed"
+        video.current_stage = "failed"
         video.error_message = str(exc)
+
         await video.save()
 
     finally:
+        # ---------------------------------------------
+        # CLEAN UP TEMPORARY AUDIO
+        # ---------------------------------------------
+
         if audio_path and os.path.exists(audio_path):
             try:
                 os.remove(audio_path)

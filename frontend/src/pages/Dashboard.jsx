@@ -8,9 +8,20 @@ function Dashboard() {
     localStorage.getItem("loggedInUserName") || "User";
 
   const role =
-    localStorage.getItem("loggedInUserRole") || "User";
+    localStorage.getItem("loggedInUserRole") || "learner";
+
+  const roleNames = {
+    learner: "Learner",
+    educator: "Educator",
+    content_creator: "Content Creator",
+    administrator: "Administrator",
+  };
+
+  const displayRole =
+    roleNames[role] || role;
 
   const handleLogout = () => {
+    localStorage.removeItem("accessToken");
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("loggedInUserName");
     localStorage.removeItem("loggedInUserRole");
@@ -18,146 +29,304 @@ function Dashboard() {
     navigate("/login");
   };
 
+  const cards = [
+    {
+      title: "🎥 Upload Video",
+      description:
+        "Upload a video for AI processing.",
+      button: "Upload Video",
+      path: "/upload",
+      visible: true,
+    },
+    {
+      title: "📋 Upload History",
+      description:
+        "View your previously uploaded videos.",
+      button: "View History",
+      path: "/history",
+      visible: true,
+    },
+    {
+      title: "⚙️ Processing Status",
+      description:
+        "Check the processing status of your videos.",
+      button: "View Status",
+      path: "/processing",
+      visible: true,
+    },
+  ];
+
   return (
-    <div style={pageStyle}>
+    <div style={styles.page}>
 
       {/* Header */}
-      <header style={headerStyle}>
-        <h2>AI Video Summarizer</h2>
+      <header style={styles.header}>
+
+        <div>
+          <h2 style={styles.logo}>
+            🎬 ClipMind AI
+          </h2>
+
+          <span style={styles.headerSubtitle}>
+            VIDEO INTELLIGENCE ENGINE
+          </span>
+        </div>
 
         <button
           onClick={handleLogout}
-          style={logoutButton}
+          style={styles.logoutButton}
         >
           Logout
         </button>
+
       </header>
 
       {/* Main */}
-      <main style={mainStyle}>
+      <main style={styles.main}>
 
-        <h1>Welcome, {name}!</h1>
+        <div style={styles.welcomeSection}>
 
-        <p style={roleStyle}>
-          Role: {role}
-        </p>
-
-        <p>
-          Welcome to your AI Video Summarization Dashboard.
-        </p>
-
-        {/* Navigation Cards */}
-        <div style={gridStyle}>
-
-          <div
-            style={cardStyle}
-            onClick={() => navigate("/upload")}
-          >
-            <h2>🎥 Upload Video</h2>
-            <p>
-              Upload a video for AI processing.
-            </p>
-
-            <button style={buttonStyle}>
-              Upload Video
-            </button>
+          <div style={styles.welcomeIcon}>
+            👋
           </div>
 
-          <div
-            style={cardStyle}
-            onClick={() => navigate("/history")}
-          >
-            <h2>📁 Upload History</h2>
-            <p>
-              View your previously uploaded videos.
-            </p>
+          <h1 style={styles.heading}>
+            Welcome, {name}!
+          </h1>
 
-            <button style={buttonStyle}>
-              View History
-            </button>
+          <div style={styles.roleBadge}>
+            Role: {displayRole}
           </div>
 
-          <div
-            style={cardStyle}
-            onClick={() => navigate("/processing")}
-          >
-            <h2>⚙️ Processing Status</h2>
-            <p>
-              Check the processing status of your video.
-            </p>
+          <p style={styles.description}>
+            Welcome to your AI Video
+            Summarization Dashboard.
+          </p>
 
-            <button style={buttonStyle}>
-              View Status
-            </button>
-          </div>
+        </div>
+
+        {/* Feature cards */}
+        <div style={styles.grid}>
+
+          {cards
+            .filter((card) => card.visible)
+            .map((card) => (
+              <div
+                key={card.path}
+                style={styles.card}
+                onClick={() =>
+                  navigate(card.path)
+                }
+              >
+                <div style={styles.cardIcon}>
+                  {card.title.split(" ")[0]}
+                </div>
+
+                <h2 style={styles.cardTitle}>
+                  {card.title.substring(
+                    card.title.indexOf(" ") + 1
+                  )}
+                </h2>
+
+                <p style={styles.cardDescription}>
+                  {card.description}
+                </p>
+
+                <button
+                  style={styles.button}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(card.path);
+                  }}
+                >
+                  {card.button}
+                </button>
+              </div>
+            ))}
+
+        </div>
+
+        {/* Role information */}
+        <div style={styles.roleInfo}>
+
+          <h3>
+            🔐 Your Access
+          </h3>
+
+          <p>
+            You are signed in as a{" "}
+            <strong>{displayRole}</strong>.
+          </p>
+
+          <p style={styles.smallText}>
+            ClipMind AI uses role-based access
+            control to protect application
+            functionality.
+          </p>
 
         </div>
 
       </main>
+
+      {/* Footer */}
+      <footer style={styles.footer}>
+        CLIPMIND AI • VIDEO INTELLIGENCE ENGINE
+      </footer>
+
     </div>
   );
 }
 
-/* ---------- STYLES ---------- */
+/* =========================================
+   STYLES
+========================================= */
 
-const pageStyle = {
-  minHeight: "100vh",
-  backgroundColor: "#f5f7fb",
-  fontFamily: "Arial, sans-serif",
-};
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background:
+      "linear-gradient(135deg, #f5f7ff, #eef2ff)",
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
+    color: "#111827",
+  },
 
-const headerStyle = {
-  backgroundColor: "white",
-  padding: "20px 40px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-};
+  header: {
+    background: "white",
+    padding: "18px 40px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    boxShadow:
+      "0 2px 10px rgba(0,0,0,0.08)",
+  },
 
-const logoutButton = {
-  padding: "10px 20px",
-  backgroundColor: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
+  logo: {
+    margin: 0,
+    fontSize: "24px",
+  },
 
-const mainStyle = {
-  padding: "50px",
-  textAlign: "center",
-};
+  headerSubtitle: {
+    fontSize: "10px",
+    letterSpacing: "2px",
+    color: "#64748b",
+  },
 
-const roleStyle = {
-  color: "#3157d5",
-  fontWeight: "bold",
-};
+  logoutButton: {
+    padding: "10px 20px",
+    background: "#dc2626",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
 
-const gridStyle = {
-  display: "flex",
-  justifyContent: "center",
-  gap: "25px",
-  marginTop: "40px",
-  flexWrap: "wrap",
-};
+  main: {
+    maxWidth: "1100px",
+    margin: "0 auto",
+    padding: "60px 25px",
+  },
 
-const cardStyle = {
-  width: "250px",
-  padding: "30px",
-  backgroundColor: "white",
-  borderRadius: "12px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-  cursor: "pointer",
-};
+  welcomeSection: {
+    textAlign: "center",
+    marginBottom: "45px",
+  },
 
-const buttonStyle = {
-  padding: "10px 20px",
-  backgroundColor: "#3157d5",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
+  welcomeIcon: {
+    fontSize: "45px",
+  },
+
+  heading: {
+    fontSize: "38px",
+    margin: "10px 0",
+  },
+
+  roleBadge: {
+    display: "inline-block",
+    padding: "8px 18px",
+    borderRadius: "30px",
+    background: "#e0e7ff",
+    color: "#3730a3",
+    fontWeight: "bold",
+    marginTop: "5px",
+  },
+
+  description: {
+    color: "#64748b",
+    fontSize: "17px",
+    marginTop: "15px",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(250px, 1fr))",
+    gap: "25px",
+  },
+
+  card: {
+    background: "white",
+    borderRadius: "18px",
+    padding: "30px",
+    textAlign: "center",
+    boxShadow:
+      "0 10px 30px rgba(30,41,59,0.08)",
+    cursor: "pointer",
+    transition:
+      "transform 0.2s ease",
+  },
+
+  cardIcon: {
+    fontSize: "45px",
+    marginBottom: "10px",
+  },
+
+  cardTitle: {
+    margin: "10px 0",
+    fontSize: "21px",
+  },
+
+  cardDescription: {
+    color: "#64748b",
+    lineHeight: "1.5",
+    minHeight: "48px",
+  },
+
+  button: {
+    marginTop: "15px",
+    padding: "11px 20px",
+    background:
+      "linear-gradient(135deg, #3157d5, #4f46e5)",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+
+  roleInfo: {
+    marginTop: "40px",
+    padding: "25px",
+    background: "white",
+    borderRadius: "15px",
+    textAlign: "center",
+    boxShadow:
+      "0 5px 20px rgba(30,41,59,0.06)",
+  },
+
+  smallText: {
+    color: "#64748b",
+    fontSize: "14px",
+  },
+
+  footer: {
+    textAlign: "center",
+    padding: "25px",
+    color: "#94a3b8",
+    fontSize: "11px",
+    letterSpacing: "1px",
+  },
 };
 
 export default Dashboard;

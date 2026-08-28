@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import VideoUpload from "./pages/VideoUpload";
 import UploadHistory from "./pages/UploadHistory";
 import ProcessingStatus from "./pages/ProcessingStatus";
+import ProtectedRoute from "./ProtectedRoute";
 
 function App() {
   return (
@@ -35,29 +36,34 @@ function App() {
           element={<Register />}
         />
 
-        {/* Dashboard */}
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
 
-        {/* Upload */}
-        <Route
-          path="/upload"
-          element={<VideoUpload />}
-        />
+          {/* Dashboard */}
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
 
-        {/* History */}
-        <Route
-          path="/history"
-          element={<UploadHistory />}
-        />
+          {/* Video Upload */}
+          <Route
+            path="/upload"
+            element={<VideoUpload />}
+          />
 
-        {/* Processing Status */}
-        <Route
-          path="/processing"
-          element={<ProcessingStatus />}
-        />
+          {/* Upload History */}
+          <Route
+            path="/history"
+            element={<UploadHistory />}
+          />
+
+          {/* Processing Status */}
+          <Route
+            path="/processing"
+            element={<ProcessingStatus />}
+          />
+
+        </Route>
 
         {/* Unknown URL */}
         <Route
