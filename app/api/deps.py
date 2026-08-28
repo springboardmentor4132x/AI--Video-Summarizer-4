@@ -1,8 +1,3 @@
-"""
-Shared FastAPI dependencies - mainly "who is the logged-in user".
-Any route that needs a logged-in user just adds:
-    current_user: User = Depends(get_current_user)
-"""
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, ExpiredSignatureError

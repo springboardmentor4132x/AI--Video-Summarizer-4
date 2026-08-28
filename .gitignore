@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .env
 venv/
+clipmind.db
+uploaded_videos/

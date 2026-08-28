@@ -1,6 +1,3 @@
-"""
-Password hashing and JWT helpers used by the auth routes.
-"""
 from datetime import datetime, timedelta, timezone
 import bcrypt
 from jose import jwt

@@ -1,6 +1,3 @@
-"""
-Centralized app settings, loaded from environment variables / .env file.
-"""
 from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     APP_NAME: str = "ClipMind AI Backend"

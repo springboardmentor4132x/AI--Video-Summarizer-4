@@ -1,8 +1,3 @@
-"""
-Video upload + status + history.
-FFmpeg processing itself is NOT wired up today (that's Nitesh's Day 2 task),
-but the upload -> validate -> store -> "status" flow works end to end.
-"""
 import os
 import uuid
 from typing import List
@@ -15,7 +10,6 @@ from app.models.video import Video
 from app.schemas.video import VideoOut
 router = APIRouter(prefix="/api/videos", tags=["Videos"])
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv"}
-MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500 MB
 def _to_out(video: Video) -> VideoOut:
     return VideoOut(id=str(video.id), filename=video.filename, status=video.status, uploaded_at=video.uploaded_at)
 @router.post("/upload", response_model=VideoOut, status_code=201)
@@ -27,8 +21,6 @@ async def upload_video(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
     contents = file.file.read()
-    if len(contents) > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(status_code=400, detail="File is too large. Maximum allowed size is 500 MB.")
     if len(contents) == 0:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

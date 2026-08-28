@@ -1,10 +1,7 @@
-"""
-FastAPI entrypoint. Run with:
-    uvicorn app.main:app --reload
-"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import auth, users, videos
+from app.api.routes import auth, users, videos, summary, transcript
 from app.core.config import settings
 from app.db.database import init_db
 app = FastAPI(title=settings.APP_NAME)
@@ -23,6 +20,8 @@ async def on_startup():
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(videos.router)
+app.include_router(summary.router)
+app.include_router(transcript.router)
 @app.get("/")
 def health_check():
     return {"status": "ok", "service": settings.APP_NAME}

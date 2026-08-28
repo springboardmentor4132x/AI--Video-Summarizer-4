@@ -1,10 +1,3 @@
-"""
-User collection - matches the schema VijayaLaxmi documented:
-id, name, email, password, role, created_at
-
-In MongoDB, the id field is automatically provided as `_id` by Beanie/MongoDB
-(accessible in code as `.id`), so it isn't declared explicitly below.
-"""
 from datetime import datetime, timezone
 from beanie import Document, Indexed
 from pydantic import EmailStr

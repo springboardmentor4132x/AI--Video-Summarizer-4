@@ -1,8 +1,3 @@
-"""
-MongoDB connection setup using Motor (the async MongoDB driver) and Beanie
-(an ODM that lets us define models similarly to how SQLAlchemy worked,
-but for MongoDB documents instead of SQL tables).
-"""
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 client = AsyncIOMotorClient(settings.MONGO_URI)

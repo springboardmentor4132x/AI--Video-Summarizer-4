@@ -1,8 +1,3 @@
-"""
-Registration + Login (JWT).
-This gives the rest of the team working /register and /login endpoints
-today, so Harika's frontend has something real to call.
-"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
