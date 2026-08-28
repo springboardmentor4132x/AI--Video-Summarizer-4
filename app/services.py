@@ -191,6 +191,7 @@ async def process_video(video: Video) -> None:
         transcript = transcribe_audio(audio_path)
 
         video.transcript = transcript
+        video.error_message = ""
 
         await update_progress(
             video,
@@ -202,6 +203,12 @@ async def process_video(video: Video) -> None:
         # ---------------------------------------------
         # STEP 4 — AI SUMMARY
         # ---------------------------------------------
+        #
+        # Summary is OPTIONAL.
+        #
+        # If OpenAI quota is unavailable, the transcript
+        # is still considered a successful result.
+        # ---------------------------------------------
 
         await update_progress(
             video,
@@ -210,21 +217,33 @@ async def process_video(video: Video) -> None:
             summary_progress=10,
         )
 
-        summary = generate_summary(transcript)
+        try:
+            summary = generate_summary(transcript)
 
-        video.summary = summary
+            video.summary = summary
+            video.summary_progress = 100
+            video.error_message = ""
 
-        await update_progress(
-            video,
-            current_stage="summary",
-            progress=95,
-            summary_progress=100,
-        )
+            await video.save()
+
+        except Exception as summary_error:
+            # Do NOT fail the entire video because the
+            # optional AI summary failed.
+            video.summary = ""
+            video.summary_progress = 0
+            video.error_message = (
+                f"Transcript completed. AI summary unavailable: "
+                f"{summary_error}"
+            )
+
+            await video.save()
 
         # ---------------------------------------------
         # STEP 5 — COMPLETED
         # ---------------------------------------------
 
+        # The video is considered successfully processed
+        # because audio extraction and transcription worked.
         await update_progress(
             video,
             status="done",
@@ -233,10 +252,12 @@ async def process_video(video: Video) -> None:
             upload_progress=100,
             audio_progress=100,
             transcription_progress=100,
-            summary_progress=100,
+            summary_progress=video.summary_progress,
         )
 
     except Exception as exc:
+        # These are actual processing failures:
+        # upload/audio extraction/transcription errors.
         video.status = "failed"
         video.current_stage = "failed"
         video.error_message = str(exc)
