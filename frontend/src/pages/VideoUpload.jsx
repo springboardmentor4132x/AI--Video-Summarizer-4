@@ -32,7 +32,7 @@ function VideoUpload() {
   const handleUpload = async () => {
     setError("");
 
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("accessToken");
 
     if (!token) {
       setError("Please login first.");
@@ -77,23 +77,23 @@ function VideoUpload() {
       // 3. Handle backend errors
       // ------------------------------------
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("loggedInUser");
-          localStorage.removeItem("loggedInUserName");
-          localStorage.removeItem("loggedInUserRole");
+  if (response.status === 401) {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("loggedInUserName");
+    localStorage.removeItem("loggedInUserRole");
 
-          navigate("/login");
+    navigate("/login");
 
-          throw new Error(
-            "Your session has expired. Please login again."
-          );
-        }
+    throw new Error(
+      "Your session has expired. Please login again."
+    );
+  }
 
-        throw new Error(
-          data.detail || "Video upload failed."
-        );
-      }
+  throw new Error(
+    data.detail || "Video upload failed."
+  );
+}
 
       // ------------------------------------
       // 4. Backend successfully created video
