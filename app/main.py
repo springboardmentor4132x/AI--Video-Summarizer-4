@@ -4,12 +4,11 @@ FastAPI entrypoint. Run with:
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import auth, users, videos
+from app.api.routes import auth, users, videos, analytics
 from app.core.config import settings
 from app.db.database import init_db
 app = FastAPI(title=settings.APP_NAME)
-# Wide open for local dev so Harika's frontend (on a different port) can call this.
-# Tighten this before anything goes near production.
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,6 +22,7 @@ async def on_startup():
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(videos.router)
+app.include_router(analytics.router)
 @app.get("/")
 def health_check():
     return {"status": "ok", "service": settings.APP_NAME}

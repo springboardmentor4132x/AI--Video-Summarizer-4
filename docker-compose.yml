@@ -1,0 +1,11 @@
+services:
+  backend:
+    build: .
+    container_name: clipmind-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./uploaded_videos:/app/uploaded_videos
+    restart: unless-stopped
