@@ -5,32 +5,58 @@ today, so Harika's frontend has something real to call.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from fastapi.concurrency import run_in_threadpool
+
 from app.core.security import create_access_token, hash_password, verify_password
-from app.db.database import get_db
 from app.models.user import User
 from app.schemas.user import Token, UserOut, UserRegister
+
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
+
+
+def _to_out(user: User) -> UserOut:
+    return UserOut(
+        id=str(user.id),
+        name=user.name,
+        email=user.email,
+        role=user.role,
+        created_at=user.created_at,
+    )
+
+
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(payload: UserRegister, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == payload.email).first()
+async def register(payload: UserRegister):
+    existing = await User.find_one(User.email == payload.email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    # bcrypt hashing is CPU-heavy and blocking - run it in a background
+    # thread so it doesn't freeze the whole server's event loop while
+    # it's computing (this was causing severe slowdowns under load,
+    # even for unrelated endpoints like the health check).
+    hashed = await run_in_threadpool(hash_password, payload.password)
+
     user = User(
         name=payload.name,
         email=payload.email,
-        password=hash_password(payload.password),
+        password=hashed,
         role=payload.role,
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+    await user.insert()
+    return _to_out(user)
+
+
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # form_data.username holds the email (OAuth2 password flow calls it "username")
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password):
+    user = await User.find_one(User.email == form_data.username)
+    if not user:
         raise HTTPException(status_code=401, detail="Incorrect email or password")
+
+    # Same fix here - verify_password uses bcrypt.checkpw, also blocking.
+    is_valid = await run_in_threadpool(verify_password, form_data.password, user.password)
+    if not is_valid:
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+
     token = create_access_token(data={"sub": str(user.id), "role": user.role})
     return Token(access_token=token)
