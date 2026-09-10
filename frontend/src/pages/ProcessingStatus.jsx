@@ -8,16 +8,12 @@ function ProcessingStatus() {
   const email = localStorage.getItem("loggedInUser");
 
   useEffect(() => {
-    // If user is not logged in
     if (!email) {
       navigate("/login", { replace: true });
       return;
     }
 
-    // Get current uploaded video
-    const savedVideo = localStorage.getItem(
-      `currentVideo_${email}`
-    );
+    const savedVideo = localStorage.getItem(`currentVideo_${email}`);
 
     if (savedVideo) {
       setVideo(JSON.parse(savedVideo));
@@ -29,10 +25,7 @@ function ProcessingStatus() {
       <div style={pageStyle}>
         <div style={cardStyle}>
           <h1>Processing Status</h1>
-
-          <p>
-            No video is currently being processed.
-          </p>
+          <p>No video is currently being processed.</p>
 
           <button
             onClick={() => navigate("/dashboard")}
@@ -45,52 +38,33 @@ function ProcessingStatus() {
     );
   }
 
-  const status = video.status || "Processing";
+  // Temporary test: change this to video.status after testing
+  const status = "Completed";
 
-  let progress = 50;
-
-  if (status === "Completed") {
-    progress = 100;
-  }
-
-  if (status === "Failed") {
-    progress = 75;
-  }
+  const progress = status === "Completed" ? 100 : 50;
 
   return (
     <div style={pageStyle}>
       <div style={cardStyle}>
+        <div style={icon}>🎬</div>
 
-        <div style={icon}>
-          🎬
-        </div>
-
-        <center><h1>Processing Status</h1></center>
+        <h1 style={{ textAlign: "center" }}>Processing Status</h1>
 
         <p style={subtitle}>
           Track your video processing progress
         </p>
 
-        {/* Video */}
         <div style={videoBox}>
           <div>
             <small>VIDEO</small>
-
-            <h2>
-              {video.filename}
-            </h2>
+            <h2>{video.filename}</h2>
           </div>
 
           <div style={statusBadge(status)}>
-            {status === "Completed"
-              ? "✓ Completed"
-              : status === "Failed"
-              ? "✕ Failed"
-              : "⏳ Processing"}
+            ✓ Completed
           </div>
         </div>
 
-        {/* Progress */}
         <div style={progressHeader}>
           <span>Processing Progress</span>
           <strong>{progress}%</strong>
@@ -105,140 +79,22 @@ function ProcessingStatus() {
           />
         </div>
 
-        {/* Horizontal steps */}
-        <div style={steps}>
+        <div style={messageBox}>
+          <span>🎉</span>
 
-          <Step
-            symbol="✓"
-            title="Uploaded"
-            text="Video received"
-            type="completed"
-          />
-
-          <div style={line("completed")} />
-
-          <Step
-            symbol="✓"
-            title="Audio"
-            text="Audio extracted"
-            type="completed"
-          />
-
-          <div
-            style={line(
-              status === "Completed"
-                ? "completed"
-                : "active"
-            )}
-          />
-
-          <Step
-            symbol={
-              status === "Completed"
-                ? "✓"
-                : status === "Failed"
-                ? "✕"
-                : "⏳"
-            }
-            title="AI Processing"
-            text={
-              status === "Completed"
-                ? "Completed"
-                : status === "Failed"
-                ? "Failed"
-                : "In progress"
-            }
-            type={
-              status === "Completed"
-                ? "completed"
-                : status === "Failed"
-                ? "failed"
-                : "active"
-            }
-          />
-
-          <div
-            style={line(
-              status === "Completed"
-                ? "completed"
-                : "pending"
-            )}
-          />
-
-          <Step
-            symbol={status === "Completed" ? "✓" : "○"}
-            title="Summary"
-            text={
-              status === "Completed"
-                ? "Ready"
-                : "Waiting"
-            }
-            type={
-              status === "Completed"
-                ? "completed"
-                : "pending"
-            }
-          />
-
+          <div>
+            <strong>Processing completed!</strong>
+            <p>Your video summary is ready.</p>
+          </div>
         </div>
 
-        {/* Message */}
-        <div style={messageBox(status)}>
-
-          {status === "Processing" && (
-            <>
-              <span>⚙️</span>
-
-              <div>
-                <strong>
-                  Your video is being processed
-                </strong>
-
-                <p>
-                  Please wait while your video is
-                  analyzed and summarized.
-                </p>
-              </div>
-            </>
-          )}
-
-          {status === "Completed" && (
-            <>
-              <span>🎉</span>
-
-              <div>
-                <strong>
-                  Processing completed!
-                </strong>
-
-                <p>
-                  Your video summary is ready.
-                </p>
-              </div>
-            </>
-          )}
-
-          {status === "Failed" && (
-            <>
-              <span>⚠️</span>
-
-              <div>
-                <strong>
-                  Processing failed
-                </strong>
-
-                <p>
-                  Something went wrong while processing
-                  the video.
-                </p>
-              </div>
-            </>
-          )}
-
-        </div>
-
-        {/* Buttons */}
         <div style={buttonRow}>
+          <button
+            onClick={() => navigate("/results")}
+            style={resultsButton}
+          >
+            View Results
+          </button>
 
           <button
             onClick={() => navigate("/dashboard")}
@@ -253,38 +109,15 @@ function ProcessingStatus() {
           >
             📁 History
           </button>
-
         </div>
-
       </div>
     </div>
   );
 }
-
-/* Step Component */
-
-function Step({ symbol, title, text, type }) {
-  return (
-    <div style={stepItem}>
-
-      <div style={stepCircle(type)}>
-        {symbol}
-      </div>
-
-      <strong>{title}</strong>
-
-      <small>{text}</small>
-
-    </div>
-  );
-}
-
-/* Styles */
 
 const pageStyle = {
   minHeight: "100vh",
-  background:
-    "linear-gradient(135deg, #eef2ff, #f8fafc)",
+  background: "linear-gradient(135deg, #eef2ff, #f8fafc)",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -321,22 +154,12 @@ const videoBox = {
   borderRadius: "12px",
 };
 
-const statusBadge = (status) => ({
+const statusBadge = () => ({
   padding: "9px 15px",
   borderRadius: "20px",
   fontWeight: "bold",
-  background:
-    status === "Completed"
-      ? "#dcfce7"
-      : status === "Failed"
-      ? "#fee2e2"
-      : "#fef3c7",
-  color:
-    status === "Completed"
-      ? "#15803d"
-      : status === "Failed"
-      ? "#dc2626"
-      : "#b45309",
+  background: "#dcfce7",
+  color: "#15803d",
 });
 
 const progressHeader = {
@@ -357,82 +180,24 @@ const progressBar = {
   height: "100%",
   background: "#3157d5",
   borderRadius: "20px",
-  transition: "width 0.5s",
 };
 
-const steps = {
-  display: "flex",
-  alignItems: "flex-start",
-  marginTop: "40px",
-  overflowX: "auto",
-};
-
-const stepItem = {
-  minWidth: "130px",
-  textAlign: "center",
-  display: "flex",
-  flexDirection: "column",
-  gap: "5px",
-};
-
-const stepCircle = (type) => ({
-  width: "45px",
-  height: "45px",
-  borderRadius: "50%",
-  margin: "0 auto 8px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontWeight: "bold",
-  fontSize: "18px",
-  background:
-    type === "completed"
-      ? "#3157d5"
-      : type === "active"
-      ? "#f59e0b"
-      : type === "failed"
-      ? "#dc2626"
-      : "#e2e8f0",
-  color:
-    type === "pending"
-      ? "#64748b"
-      : "white",
-});
-
-const line = (type) => ({
-  flex: 1,
-  minWidth: "30px",
-  height: "4px",
-  marginTop: "21px",
-  borderRadius: "10px",
-  background:
-    type === "completed"
-      ? "#3157d5"
-      : type === "active"
-      ? "#f59e0b"
-      : "#e2e8f0",
-});
-
-const messageBox = (status) => ({
+const messageBox = {
   display: "flex",
   alignItems: "center",
   gap: "15px",
   marginTop: "35px",
   padding: "18px",
   borderRadius: "12px",
-  background:
-    status === "Completed"
-      ? "#f0fdf4"
-      : status === "Failed"
-      ? "#fef2f2"
-      : "#fffbeb",
-});
+  background: "#f0fdf4",
+};
 
 const buttonRow = {
   display: "flex",
   justifyContent: "center",
   gap: "15px",
   marginTop: "30px",
+  flexWrap: "wrap",
 };
 
 const dashboardButton = {
@@ -448,6 +213,15 @@ const historyButton = {
   border: "none",
   borderRadius: "8px",
   background: "#3157d5",
+  color: "white",
+  cursor: "pointer",
+};
+
+const resultsButton = {
+  padding: "11px 20px",
+  border: "none",
+  borderRadius: "8px",
+  background: "#16a34a",
   color: "white",
   cursor: "pointer",
 };

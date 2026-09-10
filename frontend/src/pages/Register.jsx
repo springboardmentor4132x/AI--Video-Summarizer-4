@@ -4,316 +4,277 @@ import { useNavigate } from "react-router-dom";
 function Register() {
   const navigate = useNavigate();
 
-  const [fullName, setFullName] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState("learner");
 
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
+    setMessage("");
     setError("");
-    setSuccess("");
 
-    // Validate full name
-    if (!fullName.trim()) {
-      setError("Please enter your full name.");
+    // Check all fields
+    if (!name || !email || !password || !confirmPassword || !role) {
+      setError("Please fill in all fields.");
       return;
     }
 
-    // Validate email
-    if (!email.trim()) {
-      setError("Please enter your email.");
-      return;
-    }
-
-    if (!email.includes("@")) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
-    // Validate password
-    if (!password) {
-      setError("Please enter a password.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must contain at least 6 characters.");
-      return;
-    }
-
-    // Validate confirm password
+    // Check password match
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    // Validate role
-    if (!role) {
-      setError("Please select a role.");
-      return;
-    }
+    try {
+      setLoading(true);
 
-    /*
-      Get existing registered users
-    */
-    const existingUsers = JSON.parse(
-      localStorage.getItem("registeredUsers") || "[]"
-    );
-
-    /*
-      Check whether email already exists
-    */
-    const emailExists = existingUsers.some(
-      (user) =>
-        user.email.toLowerCase() ===
-        email.trim().toLowerCase()
-    );
-
-    if (emailExists) {
-      setError(
-        "This email is already registered. Please use a different email."
+      const response = await fetch(
+        "http://127.0.0.1:8000/users/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            password: password,
+            role: role,
+          }),
+        }
       );
-      return;
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.detail || "Registration failed.");
+        return;
+      }
+
+      if (data.message === "Email already registered") {
+        setError("This email is already registered.");
+        return;
+      }
+
+      if (data.message === "Invalid role") {
+        setError("Please select a valid role.");
+        return;
+      }
+
+      setMessage("Registration successful!");
+
+      setName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setRole("learner");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+
+    } catch (err) {
+      console.error(err);
+      setError("Unable to connect to the backend.");
+    } finally {
+      setLoading(false);
     }
-
-    /*
-      Create new user
-    */
-    const newUser = {
-      id: Date.now(),
-      fullName: fullName.trim(),
-      email: email.trim().toLowerCase(),
-      password: password,
-      role: role,
-    };
-
-    /*
-      Add user to registered users
-    */
-    existingUsers.push(newUser);
-
-    localStorage.setItem(
-      "registeredUsers",
-      JSON.stringify(existingUsers)
-    );
-
-    setSuccess(
-      "Registration successful! Please login."
-    );
-
-    // Clear form
-    setFullName("");
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setRole("");
-
-    // Go to login
-    setTimeout(() => {
-      navigate("/login");
-    }, 1000);
   };
 
   return (
-    <div style={pageStyle}>
-      <div style={cardStyle}>
+    <div style={styles.page}>
+      <div style={styles.card}>
 
-        <h1>Registration</h1>
+        <h1 style={styles.title}>Create Account</h1>
 
-        <p style={subtitleStyle}>
-          Create your account
+        <p style={styles.subtitle}>
+          Register for ClipMind AI
         </p>
 
         <form onSubmit={handleRegister}>
 
-          <label>Full Name</label>
-
+          {/* Name */}
+          <label style={styles.label}>Name</label>
           <input
             type="text"
-            placeholder="Enter full name"
-            value={fullName}
-            onChange={(e) =>
-              setFullName(e.target.value)
-            }
-            style={inputStyle}
+            placeholder="Enter your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={styles.input}
           />
 
-          <label>Email</label>
-
+          {/* Email */}
+          <label style={styles.label}>Email</label>
           <input
             type="email"
-            placeholder="Enter email"
+            placeholder="Enter your email"
             value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            style={inputStyle}
+            onChange={(e) => setEmail(e.target.value)}
+            style={styles.input}
           />
 
-          <label>Password</label>
-
+          {/* Password */}
+          <label style={styles.label}>Password</label>
           <input
             type="password"
             placeholder="Enter password"
             value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            style={inputStyle}
+            onChange={(e) => setPassword(e.target.value)}
+            style={styles.input}
           />
 
-          <label>Confirm Password</label>
-
+          {/* Confirm Password */}
+          <label style={styles.label}>Confirm Password</label>
           <input
             type="password"
             placeholder="Confirm password"
             value={confirmPassword}
-            onChange={(e) =>
-              setConfirmPassword(e.target.value)
-            }
-            style={inputStyle}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            style={styles.input}
           />
 
-          <label>Role</label>
-
+          {/* Role */}
+          <label style={styles.label}>Role</label>
           <select
             value={role}
-            onChange={(e) =>
-              setRole(e.target.value)
-            }
-            style={inputStyle}
+            onChange={(e) => setRole(e.target.value)}
+            style={styles.input}
           >
-            <option value="">
-              Select Role
-            </option>
-
-            <option value="Content Creator">
-              Content Creator
-            </option>
-
-            <option value="Learner">
-              Learner
-            </option>
-
-            <option value="Educator">
-              Educator
-            </option>
-
-            <option value="Administrator">
-              Administrator
-            </option>
+            <option value="learner">Learner</option>
+            <option value="content_creator">Content Creator</option>
+            <option value="educator">Educator</option>
           </select>
 
+          {/* Error */}
           {error && (
-            <p style={errorStyle}>
-              ❌ {error}
+            <p style={styles.error}>
+              {error}
             </p>
           )}
 
-          {success && (
-            <p style={successStyle}>
-              ✓ {success}
+          {/* Success */}
+          {message && (
+            <p style={styles.success}>
+              {message}
             </p>
           )}
 
+          {/* Register */}
           <button
             type="submit"
-            style={buttonStyle}
+            disabled={loading}
+            style={styles.button}
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
 
         </form>
 
-        <p>
-          Already have an account?
+        <p style={styles.loginText}>
+          Already have an account?{" "}
+          <span
+            style={styles.loginLink}
+            onClick={() => navigate("/login")}
+          >
+            Login
+          </span>
         </p>
-
-        <button
-          onClick={() => navigate("/login")}
-          style={secondaryButton}
-        >
-          Go to Login
-        </button>
 
       </div>
     </div>
   );
 }
 
-const pageStyle = {
-  minHeight: "100vh",
-  backgroundColor: "#f5f7fb",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  padding: "30px",
-  fontFamily: "Arial, sans-serif",
-};
+const styles = {
+  page: {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "#f4f6f8",
+    padding: "20px",
+  },
 
-const cardStyle = {
-  width: "420px",
-  backgroundColor: "white",
-  padding: "35px",
-  borderRadius: "12px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-};
+  card: {
+    width: "400px",
+    maxWidth: "100%",
+    background: "#ffffff",
+    padding: "35px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
+  },
 
-const subtitleStyle = {
-  textAlign: "center",
-  color: "#666",
-  marginBottom: "25px",
-};
+  title: {
+    textAlign: "center",
+    marginBottom: "8px",
+    fontSize: "28px",
+  },
 
-const inputStyle = {
-  width: "100%",
-  padding: "12px",
-  marginTop: "7px",
-  marginBottom: "18px",
-  border: "1px solid #ccc",
-  borderRadius: "6px",
-  boxSizing: "border-box",
-  fontSize: "15px",
-};
+  subtitle: {
+    textAlign: "center",
+    color: "#666",
+    marginBottom: "25px",
+  },
 
-const errorStyle = {
-  color: "#dc2626",
-  backgroundColor: "#fee2e2",
-  padding: "10px",
-  borderRadius: "6px",
-};
+  label: {
+    display: "block",
+    marginBottom: "6px",
+    marginTop: "15px",
+    fontWeight: "600",
+  },
 
-const successStyle = {
-  color: "#15803d",
-  backgroundColor: "#dcfce7",
-  padding: "10px",
-  borderRadius: "6px",
-};
+  input: {
+    width: "100%",
+    padding: "12px",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    fontSize: "15px",
+    boxSizing: "border-box",
+  },
 
-const buttonStyle = {
-  width: "100%",
-  padding: "12px",
-  backgroundColor: "#3157d5",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "16px",
-};
+  button: {
+    width: "100%",
+    padding: "12px",
+    marginTop: "22px",
+    border: "none",
+    borderRadius: "6px",
+    background: "#2563eb",
+    color: "white",
+    fontSize: "16px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
 
-const secondaryButton = {
-  width: "100%",
-  padding: "12px",
-  backgroundColor: "#eeeeee",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
+  error: {
+    color: "#dc2626",
+    marginTop: "15px",
+    textAlign: "center",
+  },
+
+  success: {
+    color: "#16a34a",
+    marginTop: "15px",
+    textAlign: "center",
+  },
+
+  loginText: {
+    textAlign: "center",
+    marginTop: "20px",
+    color: "#555",
+  },
+
+  loginLink: {
+    color: "#2563eb",
+    cursor: "pointer",
+    fontWeight: "600",
+  },
 };
 
 export default Register;

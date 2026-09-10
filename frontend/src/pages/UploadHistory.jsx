@@ -6,22 +6,47 @@ function UploadHistory() {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    const email = localStorage.getItem("loggedInUser");
+    // Get logged-in user email
+    const email =
+      localStorage.getItem("loggedInUser") ||
+      localStorage.getItem("loggedInUserEmail");
 
+    // If user is not logged in
     if (!email) {
       navigate("/login");
       return;
     }
 
+    // Get history for this user
     const key = `uploadHistory_${email}`;
     const saved = localStorage.getItem(key);
 
     if (saved) {
-      setHistory(JSON.parse(saved));
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (error) {
+        console.error("Error reading upload history:", error);
+        setHistory([]);
+      }
     } else {
       setHistory([]);
     }
   }, [navigate]);
+
+  // Open Results page
+  const viewResults = (video) => {
+    navigate("/results", {
+      state: {
+        videoName: video.filename,
+        transcript:
+          "This is the transcript generated from the uploaded video using Whisper.",
+        shortSummary:
+          "The video explains the main concepts discussed in the uploaded content.",
+        detailedSummary:
+          "The detailed AI-generated summary of the uploaded video will appear here after backend processing.",
+      },
+    });
+  };
 
   return (
     <div style={styles.page}>
@@ -45,9 +70,9 @@ function UploadHistory() {
           </div>
         ) : (
           <div>
-            {history.map((video) => (
+            {history.map((video, index) => (
               <div
-                key={video.id}
+                key={video.id || index}
                 style={styles.video}
               >
                 <div style={styles.videoName}>
@@ -55,7 +80,8 @@ function UploadHistory() {
                 </div>
 
                 <div>
-                  Upload Date: {video.uploadDate}
+                  Upload Date:{" "}
+                  {video.uploadDate || "Not available"}
                 </div>
 
                 <div style={styles.status}>
@@ -65,6 +91,15 @@ function UploadHistory() {
                     ? "✕ Failed"
                     : "⏳ Processing"}
                 </div>
+
+                {video.status === "Completed" && (
+                  <button
+                    onClick={() => viewResults(video)}
+                    style={styles.resultsButton}
+                  >
+                    📄 View Results
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -98,7 +133,7 @@ const styles = {
     minHeight: "100vh",
     background: "#f1f5f9",
     padding: "40px",
-    fontFamily: "Arial, sans-serif"
+    fontFamily: "Arial, sans-serif",
   },
 
   container: {
@@ -107,23 +142,23 @@ const styles = {
     background: "white",
     padding: "40px",
     borderRadius: "15px",
-    boxShadow: "0 5px 20px rgba(0,0,0,0.08)"
+    boxShadow: "0 5px 20px rgba(0,0,0,0.08)",
   },
 
   subtitle: {
     color: "#64748b",
-    marginBottom: "30px"
+    marginBottom: "30px",
   },
 
   empty: {
     textAlign: "center",
     padding: "50px 20px",
     border: "2px dashed #cbd5e1",
-    borderRadius: "12px"
+    borderRadius: "12px",
   },
 
   bigIcon: {
-    fontSize: "50px"
+    fontSize: "50px",
   },
 
   video: {
@@ -131,24 +166,35 @@ const styles = {
     marginBottom: "15px",
     background: "#f8fafc",
     borderRadius: "10px",
-    border: "1px solid #e2e8f0"
+    border: "1px solid #e2e8f0",
   },
 
   videoName: {
     fontSize: "18px",
     fontWeight: "bold",
-    marginBottom: "10px"
+    marginBottom: "10px",
   },
 
   status: {
     marginTop: "10px",
-    fontWeight: "bold"
+    fontWeight: "bold",
+  },
+
+  resultsButton: {
+    marginTop: "15px",
+    padding: "10px 18px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#16a34a",
+    color: "white",
+    cursor: "pointer",
+    fontWeight: "bold",
   },
 
   buttons: {
     display: "flex",
     gap: "15px",
-    marginTop: "30px"
+    marginTop: "30px",
   },
 
   dashboardButton: {
@@ -156,7 +202,7 @@ const styles = {
     border: "none",
     borderRadius: "8px",
     background: "#e2e8f0",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   uploadButton: {
@@ -165,8 +211,8 @@ const styles = {
     borderRadius: "8px",
     background: "#3157d5",
     color: "white",
-    cursor: "pointer"
-  }
+    cursor: "pointer",
+  },
 };
 
 export default UploadHistory;
