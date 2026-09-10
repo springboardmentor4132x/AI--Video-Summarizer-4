@@ -8,7 +8,11 @@ load_dotenv()
 
 app = FastAPI(title="ClipMind AI Backend")
 
-# CORS configuration
+
+# ==============================
+# CORS CONFIGURATION
+# ==============================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,7 +28,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# MongoDB Atlas configuration
+
+# ==============================
+# MONGODB CONFIGURATION
+# ==============================
+
 MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "clipmindAI")
 
@@ -32,7 +40,10 @@ client = AsyncMongoClient(MONGO_URI)
 db = client[MONGO_DB_NAME]
 
 
-# Root endpoint
+# ==============================
+# ROOT ENDPOINT
+# ==============================
+
 @app.get("/")
 async def root():
     return {
@@ -40,9 +51,13 @@ async def root():
     }
 
 
-# MongoDB connection test
+# ==============================
+# DATABASE CONNECTION TEST
+# ==============================
+
 @app.get("/test-db")
 async def test_db():
+
     result = await client.admin.command("ping")
 
     return {
@@ -51,26 +66,40 @@ async def test_db():
     }
 
 
-# User APIs
+# ==============================
+# API ROUTERS
+# ==============================
+
+# Users
 from app.api.users import router as users_router
 app.include_router(users_router)
 
 
-# Video APIs
+# Videos
 from app.api.videos import router as videos_router
 app.include_router(videos_router)
 
 
-# Key Moments APIs
+# Key Moments
 from app.api.key_moments import router as key_moments_router
 app.include_router(key_moments_router)
 
 
-# Keywords APIs
+# Keywords
 from app.api.keywords import router as keywords_router
 app.include_router(keywords_router)
 
 
-# Analytics APIs
+# Analytics
 from app.api.analytics import router as analytics_router
 app.include_router(analytics_router)
+
+
+# Transcripts
+from app.api.transcripts import router as transcripts_router
+app.include_router(transcripts_router)
+
+
+# Summaries
+from app.api.summaries import router as summaries_router
+app.include_router(summaries_router)
