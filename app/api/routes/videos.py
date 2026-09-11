@@ -1,5 +1,5 @@
 """
-Video upload, processing, status and history routes.
+Video upload, processing, status, transcript and analysis routes.
 """
 
 import os
@@ -20,8 +20,16 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.models.user import User
 from app.models.video import Video
-from app.schemas.video import VideoOut
+from app.schemas.video import (
+    KeyMomentOut,
+    KeywordOut,
+    TranscriptSegmentOut,
+    VideoOut,
+)
 from app.services import process_video, generate_summary
+from app.services.highlight_service import generate_highlights
+from app.services.key_moments_service import detect_key_moments
+from app.services.keyword_service import extract_keywords
 
 
 router = APIRouter(
@@ -41,6 +49,8 @@ MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024
 
 
 def _to_out(video: Video) -> VideoOut:
+    """Convert a Video document into the API response schema."""
+
     return VideoOut(
         id=str(video.id),
         filename=video.filename,
@@ -51,11 +61,75 @@ def _to_out(video: Video) -> VideoOut:
         audio_progress=video.audio_progress,
         transcription_progress=video.transcription_progress,
         summary_progress=video.summary_progress,
+        key_moments_progress=video.key_moments_progress,
+        highlights_progress=video.highlights_progress,
+        keywords_progress=video.keywords_progress,
         transcript=video.transcript,
+        transcript_segments=[
+            TranscriptSegmentOut(
+                start_time=segment.start_time,
+                end_time=segment.end_time,
+                text=segment.text,
+            )
+            for segment in video.transcript_segments
+        ],
+        short_summary=video.short_summary,
         summary=video.summary,
+        key_moments=[
+            KeyMomentOut(
+                start_time=moment.start_time,
+                end_time=moment.end_time,
+                label=moment.label,
+                text=moment.text,
+                importance=moment.importance,
+            )
+            for moment in video.key_moments
+        ],
+        highlights=[
+            KeyMomentOut(
+                start_time=moment.start_time,
+                end_time=moment.end_time,
+                label=moment.label,
+                text=moment.text,
+                importance=moment.importance,
+            )
+            for moment in video.highlights
+        ],
+        keywords=[
+            KeywordOut(
+                word=keyword.word,
+                score=keyword.score,
+            )
+            for keyword in video.keywords
+        ],
         error_message=video.error_message,
         uploaded_at=video.uploaded_at,
     )
+
+
+async def _find_owned_video(
+    video_id: str,
+    current_user: User,
+) -> Video:
+    """Find a video and verify ownership."""
+
+    try:
+        object_id = PydanticObjectId(video_id)
+    except Exception:
+        raise HTTPException(
+            status_code=404,
+            detail="Video not found.",
+        )
+
+    video = await Video.get(object_id)
+
+    if video is None or video.user_id != str(current_user.id):
+        raise HTTPException(
+            status_code=404,
+            detail="Video not found.",
+        )
+
+    return video
 
 
 @router.post(
@@ -68,9 +142,7 @@ async def upload_video(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Upload a video and start background processing.
-    """
+    """Upload a video and start background processing."""
 
     if not file.filename:
         raise HTTPException(
@@ -118,30 +190,31 @@ async def upload_video(
     with open(file_path, "wb") as output_file:
         output_file.write(contents)
 
-    # ==============================================
-    # CREATE VIDEO DOCUMENT
-    # ==============================================
-
     video = Video(
         user_id=str(current_user.id),
         filename=file.filename,
         file_path=file_path,
         status="uploaded",
+        current_stage="upload",
         progress=0,
         upload_progress=100,
         audio_progress=0,
         transcription_progress=0,
         summary_progress=0,
+        key_moments_progress=0,
+        highlights_progress=0,
+        keywords_progress=0,
         transcript="",
+        transcript_segments=[],
+        short_summary="",
         summary="",
+        key_moments=[],
+        highlights=[],
+        keywords=[],
         error_message="",
     )
 
     await video.insert()
-
-    # ==============================================
-    # START BACKGROUND PROCESSING
-    # ==============================================
 
     background_tasks.add_task(
         process_video,
@@ -158,9 +231,7 @@ async def upload_video(
 async def upload_history(
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Return all videos belonging to the current user.
-    """
+    """Return all videos belonging to the current user."""
 
     videos = (
         await Video.find(
@@ -176,10 +247,6 @@ async def upload_history(
     ]
 
 
-# ==============================================
-# VIDEO STATUS
-# ==============================================
-
 @router.get(
     "/{video_id}/status",
     response_model=VideoOut,
@@ -188,43 +255,39 @@ async def video_status(
     video_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Return the current processing status of a video.
-    Only the owner can access the video.
-    """
+    """Return the current processing status of a video."""
 
-    # Validate MongoDB ObjectId
-    try:
-        object_id = PydanticObjectId(video_id)
-    except Exception:
-        raise HTTPException(
-            status_code=404,
-            detail="Video not found.",
-        )
-
-    # Find video
-    video = await Video.get(object_id)
-
-    if video is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Video not found.",
-        )
-
-    # Security check:
-    # users can only access their own videos
-    if video.user_id != str(current_user.id):
-        raise HTTPException(
-            status_code=404,
-            detail="Video not found.",
-        )
+    video = await _find_owned_video(
+        video_id,
+        current_user,
+    )
 
     return _to_out(video)
 
 
-# ==============================================
-# AI SUMMARY
-# ==============================================
+@router.get(
+    "/{video_id}/transcript",
+    response_model=VideoOut,
+)
+async def get_transcript(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Return transcript and timestamped transcript segments."""
+
+    video = await _find_owned_video(
+        video_id,
+        current_user,
+    )
+
+    if not video.transcript.strip():
+        raise HTTPException(
+            status_code=404,
+            detail="Transcript is not available yet.",
+        )
+
+    return _to_out(video)
+
 
 @router.post(
     "/{video_id}/summary",
@@ -234,40 +297,13 @@ async def generate_video_summary(
     video_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Generate or regenerate the AI summary
-    for a completed transcript.
+    """Generate or regenerate the AI summary."""
 
-    AI summarization is intentionally left available
-    but is not required for the current workflow.
-    """
+    video = await _find_owned_video(
+        video_id,
+        current_user,
+    )
 
-    # Validate video ID
-    try:
-        object_id = PydanticObjectId(video_id)
-    except Exception:
-        raise HTTPException(
-            status_code=404,
-            detail="Video not found.",
-        )
-
-    # Find video
-    video = await Video.get(object_id)
-
-    if not video:
-        raise HTTPException(
-            status_code=404,
-            detail="Video not found.",
-        )
-
-    # Only the owner can generate/regenerate summary
-    if video.user_id != str(current_user.id):
-        raise HTTPException(
-            status_code=404,
-            detail="Video not found.",
-        )
-
-    # Transcript is required
     if not video.transcript.strip():
         raise HTTPException(
             status_code=400,
@@ -275,7 +311,6 @@ async def generate_video_summary(
         )
 
     try:
-        # Mark summary generation as processing
         video.current_stage = "summary"
         video.summary_progress = 10
         video.progress = 80
@@ -284,11 +319,10 @@ async def generate_video_summary(
 
         await video.save()
 
-        # Generate AI summary
         summary = generate_summary(video.transcript)
 
-        # Save result
         video.summary = summary
+        video.short_summary = summary
         video.summary_progress = 100
         video.progress = 100
         video.current_stage = "done"
@@ -300,7 +334,6 @@ async def generate_video_summary(
         return _to_out(video)
 
     except Exception as exc:
-        # Keep transcript intact even if summary fails
         video.status = "failed"
         video.current_stage = "failed"
         video.error_message = str(exc)
@@ -311,4 +344,218 @@ async def generate_video_summary(
         raise HTTPException(
             status_code=502,
             detail=f"Summary generation failed: {exc}",
+        )
+
+
+@router.post(
+    "/{video_id}/key-moments",
+    response_model=VideoOut,
+)
+async def generate_video_key_moments(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Generate key moments from the video's transcript."""
+
+    video = await _find_owned_video(
+        video_id,
+        current_user,
+    )
+
+    if not video.transcript.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Transcript is not available yet.",
+        )
+
+    try:
+        video.current_stage = "key_moments"
+        video.key_moments_progress = 10
+        video.status = "processing"
+        await video.save()
+
+        segments = [
+            {
+                "start": segment.start_time,
+                "end": segment.end_time,
+                "text": segment.text,
+            }
+            for segment in video.transcript_segments
+        ]
+
+        moments = detect_key_moments(
+            video.transcript,
+            segments,
+        )
+
+        video.key_moments = [
+            {
+                "start_time": moment["start_time"],
+                "end_time": moment["end_time"],
+                "label": moment.get("label", ""),
+                "text": moment.get("text", ""),
+                "importance": moment.get("importance", 0.0),
+            }
+            for moment in moments
+        ]
+
+        video.key_moments_progress = 100
+        video.progress = 100
+        video.current_stage = "done"
+        video.status = "done"
+        video.error_message = ""
+
+        await video.save()
+
+        return _to_out(video)
+
+    except Exception as exc:
+        video.status = "failed"
+        video.current_stage = "failed"
+        video.error_message = str(exc)
+        video.key_moments_progress = 0
+
+        await video.save()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Key moment generation failed: {exc}",
+        )
+
+
+@router.post(
+    "/{video_id}/highlights",
+    response_model=VideoOut,
+)
+async def generate_video_highlights(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Generate highlights from existing key moments."""
+
+    video = await _find_owned_video(
+        video_id,
+        current_user,
+    )
+
+    if not video.key_moments:
+        raise HTTPException(
+            status_code=400,
+            detail="Key moments are not available yet.",
+        )
+
+    try:
+        video.current_stage = "highlights"
+        video.highlights_progress = 10
+        video.status = "processing"
+        await video.save()
+
+        moments = [
+            {
+                "start_time": moment.start_time,
+                "end_time": moment.end_time,
+                "label": moment.label,
+                "text": moment.text,
+                "importance": moment.importance,
+            }
+            for moment in video.key_moments
+        ]
+
+        highlights = generate_highlights(moments)
+
+        video.highlights = [
+            {
+                "start_time": highlight["start_time"],
+                "end_time": highlight["end_time"],
+                "label": highlight.get("label", ""),
+                "text": highlight.get("text", ""),
+                "importance": highlight.get("importance", 0.0),
+            }
+            for highlight in highlights
+        ]
+
+        video.highlights_progress = 100
+        video.progress = 100
+        video.current_stage = "done"
+        video.status = "done"
+        video.error_message = ""
+
+        await video.save()
+
+        return _to_out(video)
+
+    except Exception as exc:
+        video.status = "failed"
+        video.current_stage = "failed"
+        video.error_message = str(exc)
+        video.highlights_progress = 0
+
+        await video.save()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Highlight generation failed: {exc}",
+        )
+
+
+@router.post(
+    "/{video_id}/keywords",
+    response_model=VideoOut,
+)
+async def generate_video_keywords(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Extract keywords from the video's transcript."""
+
+    video = await _find_owned_video(
+        video_id,
+        current_user,
+    )
+
+    if not video.transcript.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Transcript is not available yet.",
+        )
+
+    try:
+        video.current_stage = "keywords"
+        video.keywords_progress = 10
+        video.status = "processing"
+        await video.save()
+
+        keywords = extract_keywords(
+            video.transcript
+        )
+
+        video.keywords = [
+            {
+                "word": keyword["word"],
+                "score": keyword.get("score", 0.0),
+            }
+            for keyword in keywords
+        ]
+
+        video.keywords_progress = 100
+        video.progress = 100
+        video.current_stage = "done"
+        video.status = "done"
+        video.error_message = ""
+
+        await video.save()
+
+        return _to_out(video)
+
+    except Exception as exc:
+        video.status = "failed"
+        video.current_stage = "failed"
+        video.error_message = str(exc)
+        video.keywords_progress = 0
+
+        await video.save()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Keyword extraction failed: {exc}",
         )
