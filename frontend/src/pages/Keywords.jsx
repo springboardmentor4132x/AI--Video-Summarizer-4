@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
-export default function KeyMoments() {
+export default function Keywords() {
   const navigate = useNavigate();
 
-  const [moments, setMoments] = useState([]);
+  const [keywords, setKeywords] = useState([]);
   const [videoId, setVideoId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -19,60 +19,72 @@ export default function KeyMoments() {
       return;
     }
 
-    loadKeyMoments();
+    loadKeywords();
   }, [loggedInUser, navigate]);
 
-  const loadKeyMoments = async () => {
+  const loadKeywords = async () => {
     try {
       setLoading(true);
       setError("");
 
       const currentVideoKey = `currentVideo_${loggedInUser}`;
-      const storedVideo = localStorage.getItem(currentVideoKey);
+      const currentVideoData = localStorage.getItem(currentVideoKey);
 
-      if (!storedVideo) {
-        setMoments([]);
+      if (!currentVideoData) {
+        setKeywords([]);
         setLoading(false);
         return;
       }
 
-      const video = JSON.parse(storedVideo);
+      const currentVideo = JSON.parse(currentVideoData);
 
-      if (!video || !video.video_id) {
-        setMoments([]);
+      if (!currentVideo || !currentVideo.video_id) {
+        setKeywords([]);
         setLoading(false);
         return;
       }
 
-      setVideoId(video.video_id);
+      setVideoId(currentVideo.video_id);
 
       const response = await fetch(
-        `${API_BASE_URL}/key-moments/${video.video_id}`
+        `${API_BASE_URL}/keywords/${currentVideo.video_id}`
       );
 
       if (!response.ok) {
-        throw new Error("Unable to retrieve key moments.");
+        throw new Error("Unable to retrieve keywords.");
       }
 
       const data = await response.json();
 
       if (Array.isArray(data)) {
-        setMoments(data);
-      } else if (Array.isArray(data.key_moments)) {
-        setMoments(data.key_moments);
+        setKeywords(data);
+      } else if (Array.isArray(data.keywords)) {
+        setKeywords(data.keywords);
       } else {
-        setMoments([]);
+        setKeywords([]);
       }
     } catch (err) {
-      console.error("Key moments error:", err);
+      console.error("Keyword loading error:", err);
 
       setError(
         err.message ||
-          "Unable to load key moments. Make sure the backend is running."
+          "Unable to load keywords. Make sure the backend is running."
       );
     } finally {
       setLoading(false);
     }
+  };
+
+  const getKeywordText = (item) => {
+    if (typeof item === "string") {
+      return item;
+    }
+
+    if (item && typeof item === "object") {
+      return item.keyword || item.name || "";
+    }
+
+    return "";
   };
 
   if (loading) {
@@ -91,18 +103,18 @@ export default function KeyMoments() {
           style={{
             background: "#ffffff",
             padding: "40px",
-            borderRadius: "20px",
+            borderRadius: "18px",
             textAlign: "center",
             boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
           }}
         >
           <div
             style={{
-              fontSize: "45px",
+              fontSize: "42px",
               marginBottom: "15px",
             }}
           >
-            ⭐
+            🔑
           </div>
 
           <h2
@@ -111,7 +123,7 @@ export default function KeyMoments() {
               color: "#111827",
             }}
           >
-            Loading Key Moments
+            Loading Keywords
           </h2>
 
           <p
@@ -120,7 +132,7 @@ export default function KeyMoments() {
               color: "#6b7280",
             }}
           >
-            Retrieving key moments from the backend...
+            Retrieving keywords from the backend...
           </p>
         </div>
       </div>
@@ -157,8 +169,8 @@ export default function KeyMoments() {
             style={{
               margin: "0 0 5px",
               color: "#6366f1",
-              fontSize: "14px",
               fontWeight: "700",
+              fontSize: "14px",
             }}
           >
             CLIPMIND AI
@@ -171,7 +183,7 @@ export default function KeyMoments() {
               fontSize: "30px",
             }}
           >
-            Key Moments & Highlights
+            Keywords
           </h1>
 
           <p
@@ -180,7 +192,7 @@ export default function KeyMoments() {
               color: "#6b7280",
             }}
           >
-            Important moments retrieved from the processed video.
+            Important keywords retrieved from the processed video.
           </p>
 
           {videoId && (
@@ -214,134 +226,129 @@ export default function KeyMoments() {
           </div>
         )}
 
-        {/* Key moments */}
-
-        {moments.length > 0 ? (
-          <div
-            style={{
-              display: "grid",
-              gap: "18px",
-            }}
-          >
-            {moments.map((moment, index) => (
-              <div
-                key={moment.id || moment._id || index}
-                style={{
-                  background: "#ffffff",
-                  borderRadius: "18px",
-                  padding: "22px",
-                  boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "15px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: "inline-block",
-                        padding: "7px 12px",
-                        borderRadius: "20px",
-                        background: "#eef2ff",
-                        color: "#4338ca",
-                        fontWeight: "700",
-                        fontSize: "13px",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      {moment.timestamp || "Timestamp unavailable"}
-                    </div>
-
-                    <h2
-                      style={{
-                        margin: "0 0 10px",
-                        color: "#111827",
-                        fontSize: "21px",
-                      }}
-                    >
-                      {moment.segment || "Key Moment"}
-                    </h2>
-
-                    <p
-                      style={{
-                        margin: 0,
-                        color: "#4b5563",
-                        lineHeight: "1.6",
-                      }}
-                    >
-                      {moment.highlight ||
-                        "Highlight information is not available."}
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "7px 12px",
-                      borderRadius: "20px",
-                      background: "#f3f4f6",
-                      color: "#374151",
-                      fontSize: "12px",
-                      fontWeight: "700",
-                    }}
-                  >
-                    {moment.importance || "Not specified"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div
-            style={{
-              background: "#ffffff",
-              borderRadius: "20px",
-              padding: "50px 25px",
-              textAlign: "center",
-              boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "50px",
-                marginBottom: "12px",
-              }}
-            >
-              ⭐
-            </div>
-
-            <h2
-              style={{
-                margin: "0 0 8px",
-                color: "#111827",
-              }}
-            >
-              No Key Moments Available
-            </h2>
-
-            <p
-              style={{
-                margin: 0,
-                color: "#6b7280",
-              }}
-            >
-              Key moments will appear here when the backend contains key
-              moment data for this video.
-            </p>
-          </div>
-        )}
-
-        {/* Navigation */}
+        {/* Keywords */}
 
         <div
           style={{
-            marginTop: "30px",
+            background: "#ffffff",
+            borderRadius: "20px",
+            padding: "25px",
+            boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+          }}
+        >
+          {keywords.length > 0 ? (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                  marginBottom: "20px",
+                }}
+              >
+                <h2
+                  style={{
+                    margin: 0,
+                    color: "#111827",
+                    fontSize: "22px",
+                  }}
+                >
+                  Extracted Keywords
+                </h2>
+
+                <span
+                  style={{
+                    background: "#eef2ff",
+                    color: "#4338ca",
+                    padding: "7px 12px",
+                    borderRadius: "20px",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                  }}
+                >
+                  {keywords.length} keyword
+                  {keywords.length === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                }}
+              >
+                {keywords.map((item, index) => {
+                  const keywordText = getKeywordText(item);
+
+                  if (!keywordText) {
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      key={item?.id || item?._id || index}
+                      style={{
+                        background: "#f3f4f6",
+                        border: "1px solid #e5e7eb",
+                        padding: "12px 16px",
+                        borderRadius: "12px",
+                        color: "#374151",
+                        fontWeight: "600",
+                        fontSize: "14px",
+                      }}
+                    >
+                      #{keywordText}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "45px 20px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "45px",
+                  marginBottom: "12px",
+                }}
+              >
+                🔑
+              </div>
+
+              <h2
+                style={{
+                  margin: "0 0 8px",
+                  color: "#111827",
+                }}
+              >
+                No Keywords Available
+              </h2>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "#6b7280",
+                }}
+              >
+                Keywords will appear here when the backend contains keyword
+                data for this video.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Buttons */}
+
+        <div
+          style={{
+            marginTop: "25px",
             display: "flex",
             justifyContent: "center",
             flexWrap: "wrap",
@@ -364,7 +371,7 @@ export default function KeyMoments() {
           </button>
 
           <button
-            onClick={() => navigate("/keywords")}
+            onClick={() => navigate("/key-moments")}
             style={{
               padding: "12px 20px",
               border: "1px solid #d1d5db",
@@ -375,7 +382,7 @@ export default function KeyMoments() {
               fontWeight: "600",
             }}
           >
-            Keywords
+            Key Moments
           </button>
 
           <button

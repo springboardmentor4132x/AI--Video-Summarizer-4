@@ -19,145 +19,255 @@ function Dashboard() {
   };
 
   return (
-    <div style={pageStyle}>
+    <div style={styles.page}>
 
-      {/* Header */}
-      <header style={headerStyle}>
-        <h2>AI Video Summarizer</h2>
+      <header style={styles.header}>
+        <div>
+          <h2 style={styles.logo}>
+            ClipMind AI
+          </h2>
+
+          <p style={styles.logoSubtitle}>
+            AI Video Summarization Platform
+          </p>
+        </div>
 
         <button
           onClick={handleLogout}
-          style={logoutButton}
+          style={styles.logoutButton}
         >
           Logout
         </button>
       </header>
 
-      {/* Main */}
-      <main style={mainStyle}>
+      <main style={styles.main}>
 
-        <h1>Welcome, {name}!</h1>
+        <section style={styles.welcomeSection}>
+          <h1 style={styles.heading}>
+            Welcome, {name}!
+          </h1>
 
-        <p style={roleStyle}>
-          Role: {role}
-        </p>
+          <p style={styles.role}>
+            Role: {role}
+          </p>
 
-        <p>
-          Welcome to your AI Video Summarization Dashboard.
-        </p>
+          <p style={styles.description}>
+            Manage your videos, view processing status, and
+            explore AI-generated results from one place.
+          </p>
+        </section>
 
-        {/* Navigation Cards */}
-        <div style={gridStyle}>
+        <section style={styles.grid}>
 
           <div
-            style={cardStyle}
+            style={styles.card}
             onClick={() => navigate("/upload")}
           >
-            <h2>🎥 Upload Video</h2>
-            <p>
-              Upload a video for AI processing.
+            <div style={styles.icon}>
+              🎥
+            </div>
+
+            <h2 style={styles.cardHeading}>
+              Upload Video
+            </h2>
+
+            <p style={styles.cardText}>
+              Upload a video and send it to the backend for
+              processing.
             </p>
 
-            <button style={buttonStyle}>
+            <button style={styles.primaryButton}>
               Upload Video
             </button>
           </div>
 
           <div
-            style={cardStyle}
+            style={styles.card}
             onClick={() => navigate("/history")}
           >
-            <h2>📁 Upload History</h2>
-            <p>
-              View your previously uploaded videos.
+            <div style={styles.icon}>
+              📁
+            </div>
+
+            <h2 style={styles.cardHeading}>
+              Upload History
+            </h2>
+
+            <p style={styles.cardText}>
+              View the videos you have previously uploaded.
             </p>
 
-            <button style={buttonStyle}>
+            <button style={styles.primaryButton}>
               View History
             </button>
           </div>
 
           <div
-            style={cardStyle}
+            style={styles.card}
             onClick={() => navigate("/processing")}
           >
-            <h2>⚙️ Processing Status</h2>
-            <p>
-              Check the processing status of your video.
+            <div style={styles.icon}>
+              ⚙️
+            </div>
+
+            <h2 style={styles.cardHeading}>
+              Processing Status
+            </h2>
+
+            <p style={styles.cardText}>
+              Check the current processing status of your
+              uploaded video.
             </p>
 
-            <button style={buttonStyle}>
+            <button style={styles.primaryButton}>
               View Status
             </button>
           </div>
 
-        </div>
+          <div
+            style={styles.card}
+            onClick={() => navigate("/results")}
+          >
+            <div style={styles.icon}>
+              📊
+            </div>
+
+            <h2 style={styles.cardHeading}>
+              Video Results
+            </h2>
+
+            <p style={styles.cardText}>
+              View the summary, transcript, and other
+              results for your video.
+            </p>
+
+            <button style={styles.primaryButton}>
+              View Results
+            </button>
+          </div>
+
+        </section>
 
       </main>
     </div>
   );
 }
 
-/* ---------- STYLES ---------- */
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f5f7fb",
+    fontFamily: "Arial, sans-serif",
+  },
 
-const pageStyle = {
-  minHeight: "100vh",
-  backgroundColor: "#f5f7fb",
-  fontFamily: "Arial, sans-serif",
-};
+  header: {
+    backgroundColor: "#ffffff",
+    padding: "18px 40px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "20px",
+    flexWrap: "wrap",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  },
 
-const headerStyle = {
-  backgroundColor: "white",
-  padding: "20px 40px",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-};
+  logo: {
+    margin: 0,
+    color: "#3157d5",
+    fontSize: "24px",
+  },
 
-const logoutButton = {
-  padding: "10px 20px",
-  backgroundColor: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
+  logoSubtitle: {
+    margin: "4px 0 0",
+    color: "#64748b",
+    fontSize: "13px",
+  },
 
-const mainStyle = {
-  padding: "50px",
-  textAlign: "center",
-};
+  logoutButton: {
+    padding: "10px 20px",
+    backgroundColor: "#dc2626",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "7px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
 
-const roleStyle = {
-  color: "#3157d5",
-  fontWeight: "bold",
-};
+  main: {
+    maxWidth: "1100px",
+    margin: "0 auto",
+    padding: "50px 25px",
+  },
 
-const gridStyle = {
-  display: "flex",
-  justifyContent: "center",
-  gap: "25px",
-  marginTop: "40px",
-  flexWrap: "wrap",
-};
+  welcomeSection: {
+    textAlign: "center",
+    marginBottom: "40px",
+  },
 
-const cardStyle = {
-  width: "250px",
-  padding: "30px",
-  backgroundColor: "white",
-  borderRadius: "12px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-  cursor: "pointer",
-};
+  heading: {
+    margin: 0,
+    fontSize: "34px",
+    color: "#1e293b",
+  },
 
-const buttonStyle = {
-  padding: "10px 20px",
-  backgroundColor: "#3157d5",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
+  role: {
+    margin: "10px 0",
+    color: "#3157d5",
+    fontWeight: "bold",
+  },
+
+  description: {
+    maxWidth: "650px",
+    margin: "0 auto",
+    color: "#64748b",
+    lineHeight: "1.7",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "22px",
+  },
+
+  card: {
+    padding: "28px",
+    backgroundColor: "#ffffff",
+    borderRadius: "14px",
+    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+    cursor: "pointer",
+    textAlign: "center",
+    border: "1px solid #e2e8f0",
+    transition: "transform 0.2s ease",
+  },
+
+  icon: {
+    fontSize: "40px",
+    marginBottom: "12px",
+  },
+
+  cardHeading: {
+    margin: "0 0 10px",
+    color: "#1e293b",
+    fontSize: "21px",
+  },
+
+  cardText: {
+    minHeight: "55px",
+    margin: "0 0 20px",
+    color: "#64748b",
+    lineHeight: "1.6",
+  },
+
+  primaryButton: {
+    padding: "10px 18px",
+    backgroundColor: "#3157d5",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "7px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
 };
 
 export default Dashboard;

@@ -1,537 +1,664 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
+
 function VideoUpload() {
   const navigate = useNavigate();
 
-  const [file, setFile] = useState(null);
-  const [uploadedVideo, setUploadedVideo] = useState(null);
-  const [processingStatus, setProcessingStatus] = useState("Not Started");
-  const [error, setError] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [uploadedVideo, setUploadedVideo] = useState(null);
 
-  const [summary, setSummary] = useState("");
-  const [transcript, setTranscript] = useState("");
-  const [keyMoments, setKeyMoments] = useState([]);
+  const loggedInUser = localStorage.getItem("loggedInUser");
 
-  const handleFile = (e) => {
-    const selectedFile = e.target.files[0];
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
 
-    setError("");
+    setErrorMessage("");
+    setUploadMessage("");
     setUploadedVideo(null);
-    setProcessingStatus("Not Started");
-    setSummary("");
-    setTranscript("");
-    setKeyMoments([]);
 
-    if (!selectedFile) {
-      setFile(null);
+    if (!file) {
+      setSelectedFile(null);
       return;
     }
 
-    if (!selectedFile.type.startsWith("video/")) {
-      setError("Please select a video file.");
-      setFile(null);
+    if (!file.type.startsWith("video/")) {
+      setSelectedFile(null);
+      setErrorMessage("Please select a valid video file.");
       return;
     }
 
-    setFile(selectedFile);
+    setSelectedFile(file);
   };
 
   const handleUpload = async () => {
-    const email = localStorage.getItem("loggedInUser");
-
-    if (!email) {
-      setError("Please login first.");
+    if (!selectedFile) {
+      setErrorMessage("Please select a video before uploading.");
       return;
     }
 
-    if (!file) {
-      setError("Please select a video.");
+    if (!loggedInUser) {
+      setErrorMessage("Please login before uploading a video.");
       return;
     }
 
     setUploading(true);
-    setError("");
+    setUploadMessage("");
+    setErrorMessage("");
+    setUploadedVideo(null);
 
     try {
-      // Create form data
       const formData = new FormData();
 
-      formData.append("file", file);
-      formData.append("email", email);
+      formData.append("file", selectedFile);
+      formData.append("email", loggedInUser);
 
-      // Send video to FastAPI backend
-      const response = await fetch(
-        "http://127.0.0.1:8000/videos/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/videos/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
-      const data = await response.json();
+      let data = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
-        setError(data.detail || "Video upload failed.");
-        setUploading(false);
-        return;
+        throw new Error(
+          data.detail ||
+            data.message ||
+            `Upload failed with status ${response.status}.`
+        );
       }
 
-      if (data.message === "User not found") {
-        setError("User not found. Please login again.");
-        setUploading(false);
-        return;
+      if (!data.video_id) {
+        throw new Error(
+          data.message || "Video uploaded, but no video ID was returned."
+        );
       }
 
-      // Video uploaded successfully
-      const video = {
-        id: data.video_id,
-        filename: data.filename,
-        uploadDate: new Date().toLocaleDateString("en-IN"),
-        status: data.status,
+      const videoData = {
+        video_id: data.video_id,
+        filename: data.filename || selectedFile.name,
+        status: data.status || "Uploaded",
+        uploaded_at: new Date().toISOString(),
       };
 
-      // Save current video locally for UI/history
+      // Save the current uploaded video.
       localStorage.setItem(
-        `currentVideo_${email}`,
-        JSON.stringify(video)
+        `currentVideo_${loggedInUser}`,
+        JSON.stringify(videoData)
       );
 
-      // Save video in local history for now
-      const historyKey = `uploadHistory_${email}`;
+      // Save the upload in the user's history.
+      const historyKey = `uploadHistory_${loggedInUser}`;
 
-      const oldHistory = JSON.parse(
+      const existingHistory = JSON.parse(
         localStorage.getItem(historyKey) || "[]"
       );
 
-      localStorage.setItem(
-        historyKey,
-        JSON.stringify([video, ...oldHistory])
+      const updatedHistory = [
+        videoData,
+        ...existingHistory.filter(
+          (item) => item.video_id !== videoData.video_id
+        ),
+      ];
+
+      localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+
+      setUploadedVideo(videoData);
+      setUploadMessage(
+        "Video uploaded successfully. You can now view the results."
       );
+      setSelectedFile(null);
 
-      setUploadedVideo(video);
-      setProcessingStatus("Uploaded");
-      setUploading(false);
+      // Reset file input.
+      const fileInput = document.getElementById("video-file-input");
 
+      if (fileInput) {
+        fileInput.value = "";
+      }
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Video upload error:", error);
 
-      setError(
-        "Unable to connect to the backend. Please make sure the server is running."
+      setErrorMessage(
+        error.message || "Something went wrong while uploading the video."
       );
-
+    } finally {
       setUploading(false);
     }
   };
 
+  const goToResults = () => {
+    if (!uploadedVideo) {
+      setErrorMessage("Please upload a video first.");
+      return;
+    }
+
+    navigate("/results");
+  };
+
+  const goToProcessing = () => {
+    if (!uploadedVideo) {
+      setErrorMessage("Please upload a video first.");
+      return;
+    }
+
+    navigate("/processing");
+  };
+
+  const goToHistory = () => {
+    navigate("/history");
+  };
+
+  const goToDashboard = () => {
+    navigate("/dashboard");
+  };
+
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
+      <div style={styles.container}>
+        {/* Header */}
+        <div style={styles.header}>
+          <h1 style={styles.title}>Upload Video</h1>
 
-        <div style={styles.icon}>🎥</div>
-
-        <h1>AI Video Summarizer</h1>
-
-        <p style={styles.subtitle}>
-          Upload your video and view all results on this page
-        </p>
-
-        {/* 1. Upload Video Section */}
-        <section style={styles.section}>
-
-          <h2 style={styles.sectionTitle}>
-            1. Upload Video
-          </h2>
-
-          <div style={styles.uploadBox}>
-
-            <div style={styles.folder}>📁</div>
-
-            <h3>Select a video</h3>
-
-            <p style={styles.text}>
-              MP4, MOV, AVI and other video formats
-            </p>
-
-            <label style={styles.chooseButton}>
-
-              🎬 Choose Video
-
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleFile}
-                style={{ display: "none" }}
-              />
-
-            </label>
-
-            {file && (
-              <div style={styles.fileBox}>
-                🎞️ <span>{file.name}</span>
-              </div>
-            )}
-
-            {error && (
-              <div style={styles.error}>
-                ❌ {error}
-              </div>
-            )}
-
-            <button
-              onClick={handleUpload}
-              disabled={uploading}
-              style={{
-                ...styles.uploadButton,
-                opacity: uploading ? 0.7 : 1,
-              }}
-            >
-              {uploading
-                ? "⏳ Uploading..."
-                : "⬆️ Upload Video"}
-            </button>
-
-          </div>
-
-        </section>
-
-        {/* 2. Processing Status Section */}
-        {uploadedVideo && (
-          <section style={styles.section}>
-
-            <h2 style={styles.sectionTitle}>
-              2. Processing Status
-            </h2>
-
-            <div style={styles.statusBox}>
-
-              <div style={styles.statusIcon}>
-                {processingStatus === "Completed"
-                  ? "✓"
-                  : "⬆️"}
-              </div>
-
-              <h3
-                style={{
-                  color:
-                    processingStatus === "Completed"
-                      ? "#16a34a"
-                      : "#3157d5",
-                }}
-              >
-                {processingStatus}
-              </h3>
-
-              <p style={styles.text}>
-                {processingStatus === "Uploaded"
-                  ? "Your video has been uploaded successfully."
-                  : "Your video is being processed."}
-              </p>
-
-              <p style={styles.fileName}>
-                🎬 {uploadedVideo.filename}
-              </p>
-
-            </div>
-
-          </section>
-        )}
-
-        {/* 3. Results Section */}
-        {uploadedVideo &&
-          processingStatus === "Completed" && (
-            <section style={styles.section}>
-
-              <h2 style={styles.sectionTitle}>
-                3. Results
-              </h2>
-
-              <div style={styles.resultBox}>
-
-                <h3>📝 Video Summary</h3>
-
-                <p style={styles.resultText}>
-                  {summary}
-                </p>
-
-                <hr style={styles.line} />
-
-                <h3>📄 Transcript</h3>
-
-                <p style={styles.resultText}>
-                  {transcript}
-                </p>
-
-              </div>
-
-            </section>
-          )}
-
-        {/* 4. Key Moments Section */}
-        {uploadedVideo &&
-          processingStatus === "Completed" && (
-            <section style={styles.section}>
-
-              <h2 style={styles.sectionTitle}>
-                4. Key Moments
-              </h2>
-
-              <div style={styles.keyMomentsBox}>
-
-                {keyMoments.map((moment, index) => (
-
-                  <div
-                    key={index}
-                    style={styles.momentCard}
-                  >
-
-                    <div style={styles.timeBox}>
-                      {moment.time}
-                    </div>
-
-                    <div>
-
-                      <h3 style={styles.momentTitle}>
-                        {moment.title}
-                      </h3>
-
-                      <p style={styles.resultText}>
-                        {moment.description}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                ))}
-
-              </div>
-
-            </section>
-          )}
-
-        {/* Bottom Buttons */}
-        <div style={styles.bottomButtons}>
-
-          <button
-            onClick={() => navigate("/history")}
-            style={styles.historyButton}
-          >
-            📁 View History
-          </button>
-
-          <button
-            onClick={() => navigate("/dashboard")}
-            style={styles.dashboardButton}
-          >
-            ← Back to Dashboard
-          </button>
-
+          <p style={styles.subtitle}>
+            Upload your video and view the processing results.
+          </p>
         </div>
 
+        {/* Upload Card */}
+        <div style={styles.card}>
+          <div style={styles.uploadIcon}>🎬</div>
+
+          <h2 style={styles.cardTitle}>Choose a Video</h2>
+
+          <p style={styles.cardText}>
+            Select a video file from your computer to upload to ClipMind AI.
+          </p>
+
+          <input
+            id="video-file-input"
+            type="file"
+            accept="video/*"
+            onChange={handleFileChange}
+            style={styles.fileInput}
+          />
+
+          {/* Selected File */}
+          {selectedFile && (
+            <div style={styles.filePreview}>
+              <div style={styles.fileIcon}>🎥</div>
+
+              <div style={styles.fileInformation}>
+                <strong style={styles.fileName}>
+                  {selectedFile.name}
+                </strong>
+
+                <span style={styles.fileSize}>
+                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {errorMessage && (
+            <div style={styles.errorBox}>
+              <span>⚠️</span>
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Success */}
+          {uploadMessage && (
+            <div style={styles.successBox}>
+              <span>✅</span>
+              <span>{uploadMessage}</span>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          {!uploadedVideo && (
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={uploading || !selectedFile}
+              style={{
+                ...styles.uploadButton,
+                ...(uploading || !selectedFile
+                  ? styles.disabledButton
+                  : {}),
+              }}
+            >
+              {uploading ? "Uploading..." : "⬆️ Upload Video"}
+            </button>
+          )}
+
+          {/* Successful Upload Section */}
+          {uploadedVideo && (
+            <div style={styles.uploadedSection}>
+              <div style={styles.completedIcon}>✓</div>
+
+              <h2 style={styles.completedTitle}>
+                Upload Completed
+              </h2>
+
+              <p style={styles.completedText}>
+                Your video has been uploaded successfully.
+              </p>
+
+              {/* Video Information */}
+              <div style={styles.videoInfoCard}>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Video</span>
+
+                  <span style={styles.infoValue}>
+                    {uploadedVideo.filename}
+                  </span>
+                </div>
+
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Video ID</span>
+
+                  <span style={styles.infoValue}>
+                    {uploadedVideo.video_id}
+                  </span>
+                </div>
+
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Status</span>
+
+                  <span style={styles.statusBadge}>
+                    {uploadedVideo.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Main Results Button */}
+              <button
+                type="button"
+                onClick={goToResults}
+                style={styles.resultsButton}
+              >
+                📊 View Results
+              </button>
+
+              {/* Other Navigation Buttons */}
+              <div style={styles.secondaryButtons}>
+                <button
+                  type="button"
+                  onClick={goToProcessing}
+                  style={styles.secondaryButton}
+                >
+                  ⚙️ Processing Status
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goToHistory}
+                  style={styles.secondaryButton}
+                >
+                  📚 Upload History
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goToDashboard}
+                  style={styles.secondaryButton}
+                >
+                  🏠 Dashboard
+                </button>
+              </div>
+
+              {/* Backend Processing Note */}
+              <div style={styles.noteBox}>
+                <strong>Note:</strong>
+
+                <span>
+                  The Results page displays transcript, summary, key
+                  moments and keywords only when the backend processing
+                  pipeline has generated the corresponding data.
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        {!uploadedVideo && (
+          <div style={styles.bottomNavigation}>
+            <button
+              type="button"
+              onClick={goToDashboard}
+              style={styles.navButton}
+            >
+              🏠 Dashboard
+            </button>
+
+            <button
+              type="button"
+              onClick={goToHistory}
+              style={styles.navButton}
+            >
+              📚 History
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f1f5f9",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    padding: "30px",
-    fontFamily: "Arial",
+    background:
+      "linear-gradient(135deg, #eff6ff 0%, #f8fafc 50%, #eef2ff 100%)",
+    padding: "40px 20px",
+    boxSizing: "border-box",
+    fontFamily:
+      "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
   },
 
-  card: {
-    width: "750px",
-    maxWidth: "100%",
-    background: "#ffffff",
-    padding: "35px",
-    borderRadius: "20px",
+  container: {
+    width: "100%",
+    maxWidth: "900px",
+    margin: "0 auto",
+  },
+
+  header: {
     textAlign: "center",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    marginBottom: "30px",
   },
 
-  icon: {
-    fontSize: "45px",
+  title: {
+    margin: "0 0 10px",
+    fontSize: "34px",
+    fontWeight: "800",
+    color: "#172554",
   },
 
   subtitle: {
+    margin: 0,
     color: "#64748b",
-    marginBottom: "25px",
+    fontSize: "16px",
   },
 
-  section: {
-    marginTop: "25px",
-    padding: "25px",
-    border: "1px solid #e2e8f0",
-    borderRadius: "15px",
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: "20px",
+    padding: "35px",
+    boxShadow: "0 12px 35px rgba(15, 23, 42, 0.10)",
+    textAlign: "center",
   },
 
-  sectionTitle: {
-    marginBottom: "20px",
+  uploadIcon: {
+    width: "75px",
+    height: "75px",
+    margin: "0 auto 20px",
+    borderRadius: "50%",
+    backgroundColor: "#dbeafe",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "34px",
+  },
+
+  cardTitle: {
+    margin: "0 0 10px",
     color: "#1e293b",
+    fontSize: "24px",
   },
 
-  uploadBox: {
-    border: "2px dashed #cbd5e1",
-    padding: "30px",
-    borderRadius: "15px",
-  },
-
-  folder: {
-    fontSize: "50px",
-  },
-
-  text: {
+  cardText: {
+    margin: "0 auto 25px",
+    maxWidth: "600px",
     color: "#64748b",
     lineHeight: "1.6",
   },
 
-  chooseButton: {
-    display: "inline-block",
-    padding: "12px 20px",
-    marginTop: "15px",
-    background: "#e0e7ff",
-    color: "#3157d5",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  fileBox: {
-    marginTop: "20px",
-    padding: "15px",
-    background: "#f8fafc",
-    borderRadius: "10px",
-    display: "flex",
-    justifyContent: "center",
-    gap: "10px",
-    overflowWrap: "anywhere",
-  },
-
-  error: {
-    marginTop: "15px",
-    padding: "12px",
-    background: "#fee2e2",
-    color: "#dc2626",
-    borderRadius: "8px",
-  },
-
-  uploadButton: {
+  fileInput: {
     width: "100%",
-    marginTop: "20px",
-    padding: "13px",
-    background: "#3157d5",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "8px",
+    maxWidth: "500px",
+    padding: "12px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
+    backgroundColor: "#f8fafc",
+    boxSizing: "border-box",
     cursor: "pointer",
-    fontWeight: "bold",
   },
 
-  statusBox: {
-    padding: "20px",
-    background: "#f8fafc",
-    borderRadius: "12px",
-  },
-
-  statusIcon: {
-    width: "65px",
-    height: "65px",
-    margin: "0 auto 15px",
-    borderRadius: "50%",
-    background: "#e0e7ff",
-    color: "#3157d5",
+  filePreview: {
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
-    fontSize: "32px",
-    fontWeight: "bold",
+    gap: "15px",
+    maxWidth: "600px",
+    margin: "25px auto 0",
+    padding: "15px",
+    backgroundColor: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    textAlign: "left",
+  },
+
+  fileIcon: {
+    width: "45px",
+    height: "45px",
+    borderRadius: "10px",
+    backgroundColor: "#dbeafe",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "22px",
+    flexShrink: 0,
+  },
+
+  fileInformation: {
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
   },
 
   fileName: {
-    fontWeight: "bold",
-    color: "#334155",
+    color: "#1e293b",
     overflowWrap: "anywhere",
   },
 
-  resultBox: {
-    padding: "20px",
-    background: "#f8fafc",
+  fileSize: {
+    color: "#64748b",
+    fontSize: "13px",
+  },
+
+  uploadButton: {
+    marginTop: "25px",
+    padding: "13px 30px",
+    border: "none",
+    borderRadius: "10px",
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    fontSize: "16px",
+    fontWeight: "700",
+    cursor: "pointer",
+    boxShadow: "0 5px 15px rgba(37, 99, 235, 0.25)",
+  },
+
+  disabledButton: {
+    backgroundColor: "#94a3b8",
+    cursor: "not-allowed",
+    boxShadow: "none",
+  },
+
+  errorBox: {
+    maxWidth: "600px",
+    margin: "20px auto 0",
+    padding: "13px 16px",
+    backgroundColor: "#fef2f2",
+    border: "1px solid #fecaca",
+    color: "#b91c1c",
+    borderRadius: "10px",
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+    textAlign: "left",
+  },
+
+  successBox: {
+    maxWidth: "600px",
+    margin: "20px auto 0",
+    padding: "13px 16px",
+    backgroundColor: "#f0fdf4",
+    border: "1px solid #bbf7d0",
+    color: "#166534",
+    borderRadius: "10px",
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+    textAlign: "left",
+  },
+
+  uploadedSection: {
+    marginTop: "30px",
+    paddingTop: "30px",
+    borderTop: "1px solid #e2e8f0",
+  },
+
+  completedIcon: {
+    width: "60px",
+    height: "60px",
+    margin: "0 auto 15px",
+    borderRadius: "50%",
+    backgroundColor: "#dcfce7",
+    color: "#16a34a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "32px",
+    fontWeight: "800",
+  },
+
+  completedTitle: {
+    margin: "0 0 8px",
+    color: "#166534",
+    fontSize: "24px",
+  },
+
+  completedText: {
+    margin: "0 0 22px",
+    color: "#64748b",
+  },
+
+  videoInfoCard: {
+    maxWidth: "650px",
+    margin: "0 auto 25px",
+    padding: "18px",
+    backgroundColor: "#f8fafc",
+    border: "1px solid #e2e8f0",
     borderRadius: "12px",
     textAlign: "left",
   },
 
-  resultText: {
-    color: "#475569",
-    lineHeight: "1.7",
-  },
-
-  line: {
-    border: "none",
-    borderTop: "1px solid #e2e8f0",
-    margin: "20px 0",
-  },
-
-  keyMomentsBox: {
+  infoRow: {
     display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-  },
-
-  momentCard: {
-    display: "flex",
+    justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: "15px",
-    padding: "15px",
-    background: "#f8fafc",
-    borderRadius: "10px",
-    textAlign: "left",
+    gap: "20px",
+    padding: "12px 0",
+    borderBottom: "1px solid #e2e8f0",
   },
 
-  timeBox: {
-    minWidth: "70px",
-    padding: "8px",
-    background: "#3157d5",
-    color: "#ffffff",
-    borderRadius: "6px",
-    textAlign: "center",
-    fontWeight: "bold",
+  infoLabel: {
+    color: "#64748b",
+    fontWeight: "600",
+    flexShrink: 0,
   },
 
-  momentTitle: {
-    margin: "0 0 8px",
+  infoValue: {
     color: "#1e293b",
+    fontWeight: "600",
+    textAlign: "right",
+    overflowWrap: "anywhere",
   },
 
-  bottomButtons: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "15px",
-    flexWrap: "wrap",
-    marginTop: "25px",
+  statusBadge: {
+    padding: "5px 10px",
+    borderRadius: "20px",
+    backgroundColor: "#dbeafe",
+    color: "#1d4ed8",
+    fontWeight: "700",
+    fontSize: "13px",
   },
 
-  historyButton: {
-    padding: "12px 20px",
-    background: "#3157d5",
-    color: "#ffffff",
+  resultsButton: {
+    width: "100%",
+    maxWidth: "500px",
+    padding: "15px 24px",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "10px",
+    backgroundColor: "#7c3aed",
+    color: "#ffffff",
+    fontSize: "17px",
+    fontWeight: "800",
+    cursor: "pointer",
+    boxShadow: "0 6px 18px rgba(124, 58, 237, 0.25)",
+  },
+
+  secondaryButtons: {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: "10px",
+    marginTop: "15px",
+  },
+
+  secondaryButton: {
+    padding: "11px 16px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "9px",
+    backgroundColor: "#ffffff",
+    color: "#334155",
+    fontSize: "14px",
+    fontWeight: "700",
     cursor: "pointer",
   },
 
-  dashboardButton: {
-    padding: "12px 20px",
-    background: "#e2e8f0",
-    border: "none",
-    borderRadius: "8px",
+  noteBox: {
+    maxWidth: "650px",
+    margin: "22px auto 0",
+    padding: "14px 16px",
+    borderRadius: "10px",
+    backgroundColor: "#fffbeb",
+    border: "1px solid #fde68a",
+    color: "#92400e",
+    display: "flex",
+    gap: "8px",
+    textAlign: "left",
+    lineHeight: "1.5",
+    fontSize: "14px",
+  },
+
+  bottomNavigation: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "12px",
+    marginTop: "25px",
+  },
+
+  navButton: {
+    padding: "11px 18px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "9px",
+    backgroundColor: "#ffffff",
+    color: "#334155",
+    fontWeight: "700",
     cursor: "pointer",
   },
 };

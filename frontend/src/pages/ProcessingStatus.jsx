@@ -1,238 +1,315 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function ProcessingStatus() {
+export default function ProcessingStatus() {
   const navigate = useNavigate();
+
   const [video, setVideo] = useState(null);
 
-  const email = localStorage.getItem("loggedInUser");
+  const loggedInUser = localStorage.getItem("loggedInUser");
 
   useEffect(() => {
-    if (!email) {
-      navigate("/login", { replace: true });
+    if (!loggedInUser) {
+      navigate("/login");
       return;
     }
 
-    const savedVideo = localStorage.getItem(`currentVideo_${email}`);
+    const currentVideoKey = `currentVideo_${loggedInUser}`;
+    const storedVideo = localStorage.getItem(currentVideoKey);
 
-    if (savedVideo) {
-      setVideo(JSON.parse(savedVideo));
+    if (storedVideo) {
+      try {
+        setVideo(JSON.parse(storedVideo));
+      } catch (error) {
+        console.error("Unable to read current video:", error);
+      }
     }
-  }, [email, navigate]);
+  }, [loggedInUser, navigate]);
 
   if (!video) {
     return (
-      <div style={pageStyle}>
-        <div style={cardStyle}>
-          <h1>Processing Status</h1>
-          <p>No video is currently being processed.</p>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#f5f7fb",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "20px",
+        }}
+      >
+        <div
+          style={{
+            background: "#ffffff",
+            padding: "40px",
+            borderRadius: "20px",
+            textAlign: "center",
+            boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+            maxWidth: "500px",
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "50px",
+              marginBottom: "15px",
+            }}
+          >
+            🎬
+          </div>
+
+          <h2
+            style={{
+              margin: "0 0 10px",
+              color: "#111827",
+            }}
+          >
+            No Video Selected
+          </h2>
+
+          <p
+            style={{
+              margin: "0 0 25px",
+              color: "#6b7280",
+            }}
+          >
+            Upload a video to view its processing status.
+          </p>
 
           <button
-            onClick={() => navigate("/dashboard")}
-            style={buttonStyle}
+            onClick={() => navigate("/upload")}
+            style={{
+              padding: "12px 20px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#4f46e5",
+              color: "#ffffff",
+              cursor: "pointer",
+              fontWeight: "600",
+            }}
           >
-            ← Dashboard
+            Upload Video
           </button>
         </div>
       </div>
     );
   }
 
-  // Temporary test: change this to video.status after testing
-  const status = "Completed";
-
-  const progress = status === "Completed" ? 100 : 50;
+  const status = video.status || "Uploaded";
 
   return (
-    <div style={pageStyle}>
-      <div style={cardStyle}>
-        <div style={icon}>🎬</div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f5f7fb",
+        padding: "25px",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "900px",
+          margin: "0 auto",
+        }}
+      >
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "20px",
+            padding: "30px",
+            boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div
+              style={{
+                fontSize: "50px",
+                marginBottom: "10px",
+              }}
+            >
+              ⚙️
+            </div>
 
-        <h1 style={{ textAlign: "center" }}>Processing Status</h1>
+            <h1
+              style={{
+                margin: "0 0 10px",
+                color: "#111827",
+              }}
+            >
+              Processing Status
+            </h1>
 
-        <p style={subtitle}>
-          Track your video processing progress
-        </p>
-
-        <div style={videoBox}>
-          <div>
-            <small>VIDEO</small>
-            <h2>{video.filename}</h2>
+            <p
+              style={{
+                margin: 0,
+                color: "#6b7280",
+              }}
+            >
+              Current status from the uploaded video record.
+            </p>
           </div>
 
-          <div style={statusBadge(status)}>
-            ✓ Completed
-          </div>
-        </div>
-
-        <div style={progressHeader}>
-          <span>Processing Progress</span>
-          <strong>{progress}%</strong>
-        </div>
-
-        <div style={progressBackground}>
           <div
             style={{
-              ...progressBar,
-              width: `${progress}%`,
+              marginTop: "30px",
+              padding: "20px",
+              background: "#f9fafb",
+              borderRadius: "14px",
+              border: "1px solid #e5e7eb",
             }}
-          />
-        </div>
+          >
+            <p
+              style={{
+                margin: "0 0 8px",
+                color: "#6b7280",
+                fontSize: "13px",
+                fontWeight: "600",
+              }}
+            >
+              VIDEO FILE
+            </p>
 
-        <div style={messageBox}>
-          <span>🎉</span>
+            <h3
+              style={{
+                margin: "0 0 12px",
+                color: "#111827",
+                wordBreak: "break-word",
+              }}
+            >
+              {video.filename || "Uploaded video"}
+            </h3>
 
-          <div>
-            <strong>Processing completed!</strong>
-            <p>Your video summary is ready.</p>
+            {video.video_id && (
+              <p
+                style={{
+                  margin: "0 0 12px",
+                  color: "#9ca3af",
+                  fontSize: "13px",
+                  wordBreak: "break-word",
+                }}
+              >
+                Video ID: {video.video_id}
+              </p>
+            )}
+
+            <div
+              style={{
+                display: "inline-block",
+                padding: "8px 15px",
+                borderRadius: "20px",
+                background: "#eef2ff",
+                color: "#4338ca",
+                fontWeight: "700",
+                fontSize: "14px",
+              }}
+            >
+              {status}
+            </div>
           </div>
-        </div>
 
-        <div style={buttonRow}>
-          <button
-            onClick={() => navigate("/results")}
-            style={resultsButton}
+          <div
+            style={{
+              marginTop: "25px",
+              padding: "20px",
+              background: "#f8fafc",
+              borderRadius: "14px",
+              border: "1px solid #e2e8f0",
+            }}
           >
-            View Results
-          </button>
+            <h3
+              style={{
+                margin: "0 0 10px",
+                color: "#111827",
+              }}
+            >
+              Processing Information
+            </h3>
 
-          <button
-            onClick={() => navigate("/dashboard")}
-            style={dashboardButton}
-          >
-            ← Dashboard
-          </button>
+            <p
+              style={{
+                margin: 0,
+                color: "#64748b",
+                lineHeight: "1.6",
+              }}
+            >
+              The current backend upload endpoint stores the uploaded video
+              and its status. AI transcription, summarization, keyword
+              extraction, and key-moment processing will appear here after
+              those backend services provide the corresponding data.
+            </p>
+          </div>
 
-          <button
-            onClick={() => navigate("/history")}
-            style={historyButton}
+          <div
+            style={{
+              marginTop: "30px",
+              display: "flex",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: "12px",
+            }}
           >
-            📁 History
-          </button>
+            <button
+              onClick={() => navigate("/results")}
+              style={{
+                padding: "12px 20px",
+                border: "none",
+                borderRadius: "10px",
+                background: "#4f46e5",
+                color: "#ffffff",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              View Results
+            </button>
+
+            <button
+              onClick={() => navigate("/history")}
+              style={{
+                padding: "12px 20px",
+                border: "1px solid #d1d5db",
+                borderRadius: "10px",
+                background: "#ffffff",
+                color: "#111827",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              Upload History
+            </button>
+
+            <button
+              onClick={() => navigate("/analytics")}
+              style={{
+                padding: "12px 20px",
+                border: "1px solid #d1d5db",
+                borderRadius: "10px",
+                background: "#ffffff",
+                color: "#111827",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              Analytics
+            </button>
+
+            <button
+              onClick={() => navigate("/dashboard")}
+              style={{
+                padding: "12px 20px",
+                border: "1px solid #d1d5db",
+                borderRadius: "10px",
+                background: "#ffffff",
+                color: "#111827",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              Dashboard
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-const pageStyle = {
-  minHeight: "100vh",
-  background: "linear-gradient(135deg, #eef2ff, #f8fafc)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  padding: "30px",
-  fontFamily: "Arial, sans-serif",
-};
-
-const cardStyle = {
-  width: "950px",
-  maxWidth: "95%",
-  background: "white",
-  padding: "40px",
-  borderRadius: "20px",
-  boxShadow: "0 10px 35px rgba(0,0,0,0.08)",
-};
-
-const icon = {
-  fontSize: "40px",
-  textAlign: "center",
-};
-
-const subtitle = {
-  textAlign: "center",
-  color: "#64748b",
-  marginBottom: "30px",
-};
-
-const videoBox = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  background: "#f8fafc",
-  padding: "20px",
-  borderRadius: "12px",
-};
-
-const statusBadge = () => ({
-  padding: "9px 15px",
-  borderRadius: "20px",
-  fontWeight: "bold",
-  background: "#dcfce7",
-  color: "#15803d",
-});
-
-const progressHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginTop: "30px",
-  marginBottom: "8px",
-};
-
-const progressBackground = {
-  height: "9px",
-  background: "#e2e8f0",
-  borderRadius: "20px",
-  overflow: "hidden",
-};
-
-const progressBar = {
-  height: "100%",
-  background: "#3157d5",
-  borderRadius: "20px",
-};
-
-const messageBox = {
-  display: "flex",
-  alignItems: "center",
-  gap: "15px",
-  marginTop: "35px",
-  padding: "18px",
-  borderRadius: "12px",
-  background: "#f0fdf4",
-};
-
-const buttonRow = {
-  display: "flex",
-  justifyContent: "center",
-  gap: "15px",
-  marginTop: "30px",
-  flexWrap: "wrap",
-};
-
-const dashboardButton = {
-  padding: "11px 20px",
-  border: "none",
-  borderRadius: "8px",
-  background: "#e2e8f0",
-  cursor: "pointer",
-};
-
-const historyButton = {
-  padding: "11px 20px",
-  border: "none",
-  borderRadius: "8px",
-  background: "#3157d5",
-  color: "white",
-  cursor: "pointer",
-};
-
-const resultsButton = {
-  padding: "11px 20px",
-  border: "none",
-  borderRadius: "8px",
-  background: "#16a34a",
-  color: "white",
-  cursor: "pointer",
-};
-
-const buttonStyle = {
-  padding: "11px 20px",
-  border: "none",
-  borderRadius: "8px",
-  background: "#3157d5",
-  color: "white",
-  cursor: "pointer",
-};
-
-export default ProcessingStatus;

@@ -10,10 +10,6 @@ router = APIRouter(
 )
 
 
-# =========================
-# Analytics Data Model
-# =========================
-
 class AnalyticsCreate(BaseModel):
     video_id: str
     duration_seconds: float
@@ -24,10 +20,9 @@ class AnalyticsCreate(BaseModel):
     summary_generated: bool
 
 
-# =========================
+# =========================================================
 # CREATE ANALYTICS
-# =========================
-
+# =========================================================
 @router.post("/")
 async def create_analytics(data: AnalyticsCreate):
 
@@ -51,10 +46,9 @@ async def create_analytics(data: AnalyticsCreate):
     }
 
 
-# =========================
-# ANALYTICS OVERVIEW
-# =========================
-
+# =========================================================
+# OVERVIEW STATISTICS
+# =========================================================
 @router.get("/stats/overview")
 async def analytics_overview():
 
@@ -76,10 +70,9 @@ async def analytics_overview():
     }
 
 
-# =========================
+# =========================================================
 # PROCESSING STATISTICS
-# =========================
-
+# =========================================================
 @router.get("/stats/processing")
 async def processing_statistics():
 
@@ -97,26 +90,205 @@ async def processing_statistics():
         }
     ]
 
+    # IMPORTANT:
+    # In your current AsyncMongoClient environment,
+    # aggregate() returns a coroutine.
+    # Therefore await aggregate().
     cursor = await db.analytics.aggregate(pipeline)
 
+    # Then await to_list().
     result = await cursor.to_list(length=1)
 
     if not result:
+
         return {
             "total_processed_videos": 0,
             "average_processing_time": 0
         }
 
     return {
-        "total_processed_videos": result[0]["total_processed_videos"],
-        "average_processing_time": result[0]["average_processing_time"]
+        "total_processed_videos": result[0].get(
+            "total_processed_videos",
+            0
+        ),
+        "average_processing_time": (
+            result[0].get(
+                "average_processing_time",
+                0
+            ) or 0
+        )
     }
 
 
-# =========================
-# READ ANALYTICS BY VIDEO
-# =========================
+# =========================================================
+# COMPLETE ANALYTICS DASHBOARD DATA
+# =========================================================
+@router.get("/stats/dashboard")
+async def analytics_dashboard():
 
+    # -----------------------------------------------------
+    # TOP KEYWORDS
+    # -----------------------------------------------------
+
+    keyword_pipeline = [
+        {
+            "$group": {
+                "_id": "$keyword",
+                "count": {
+                    "$sum": 1
+                }
+            }
+        },
+        {
+            "$sort": {
+                "count": -1
+            }
+        },
+        {
+            "$limit": 10
+        }
+    ]
+
+    # Await aggregate() in your AsyncMongoClient setup.
+    keyword_cursor = await db.keywords.aggregate(
+        keyword_pipeline
+    )
+
+    keyword_results = await keyword_cursor.to_list(
+        length=10
+    )
+
+    top_keywords = []
+
+    for item in keyword_results:
+
+        keyword = item.get("_id")
+
+        if keyword:
+
+            top_keywords.append({
+                "keyword": str(keyword),
+                "count": item.get(
+                    "count",
+                    0
+                )
+            })
+
+
+    # -----------------------------------------------------
+    # VIDEO STATUS BREAKDOWN
+    # -----------------------------------------------------
+
+    status_pipeline = [
+        {
+            "$group": {
+                "_id": "$status",
+                "count": {
+                    "$sum": 1
+                }
+            }
+        },
+        {
+            "$sort": {
+                "count": -1
+            }
+        }
+    ]
+
+    # Await aggregate() in your AsyncMongoClient setup.
+    status_cursor = await db.videos.aggregate(
+        status_pipeline
+    )
+
+    status_results = await status_cursor.to_list(
+        length=None
+    )
+
+    status_breakdown = []
+
+    for item in status_results:
+
+        status = item.get(
+            "_id"
+        ) or "Unknown"
+
+        status_breakdown.append({
+            "status": str(status),
+            "count": item.get(
+                "count",
+                0
+            )
+        })
+
+
+    # -----------------------------------------------------
+    # LATEST UPLOAD
+    # -----------------------------------------------------
+
+    latest_upload = await db.videos.find_one(
+        {},
+        sort=[
+            ("uploaded_at", -1)
+        ]
+    )
+
+    latest = None
+
+    if latest_upload:
+
+        uploaded_at = latest_upload.get(
+            "uploaded_at"
+        )
+
+        if uploaded_at:
+
+            try:
+
+                uploaded_at_value = (
+                    uploaded_at.isoformat()
+                )
+
+            except AttributeError:
+
+                uploaded_at_value = str(
+                    uploaded_at
+                )
+
+        else:
+
+            uploaded_at_value = None
+
+
+        latest = {
+            "video_id": str(
+                latest_upload["_id"]
+            ),
+            "filename": latest_upload.get(
+                "filename",
+                "Unknown"
+            ),
+            "status": latest_upload.get(
+                "status",
+                "Unknown"
+            ),
+            "uploaded_at": uploaded_at_value
+        }
+
+
+    # -----------------------------------------------------
+    # RETURN DASHBOARD DATA
+    # -----------------------------------------------------
+
+    return {
+        "top_keywords": top_keywords,
+        "status_breakdown": status_breakdown,
+        "latest_upload": latest
+    }
+
+
+# =========================================================
+# GET ANALYTICS FOR ONE VIDEO
+# =========================================================
 @router.get("/{video_id}")
 async def get_analytics(video_id: str):
 
@@ -125,57 +297,100 @@ async def get_analytics(video_id: str):
     })
 
     if not analytics:
+
         return {
             "message": "Analytics not found",
             "video_id": video_id
         }
 
     return {
-        "id": str(analytics["_id"]),
-        "video_id": analytics["video_id"],
-        "duration_seconds": analytics["duration_seconds"],
-        "processing_time_seconds": analytics["processing_time_seconds"],
-        "word_count": analytics["word_count"],
-        "keyword_count": analytics["keyword_count"],
-        "key_moment_count": analytics["key_moment_count"],
-        "summary_generated": analytics["summary_generated"]
+        "id": str(
+            analytics["_id"]
+        ),
+        "video_id": analytics[
+            "video_id"
+        ],
+        "duration_seconds": analytics[
+            "duration_seconds"
+        ],
+        "processing_time_seconds": analytics[
+            "processing_time_seconds"
+        ],
+        "word_count": analytics[
+            "word_count"
+        ],
+        "keyword_count": analytics[
+            "keyword_count"
+        ],
+        "key_moment_count": analytics[
+            "key_moment_count"
+        ],
+        "summary_generated": analytics[
+            "summary_generated"
+        ]
     }
 
 
-# =========================
+# =========================================================
 # UPDATE ANALYTICS
-# =========================
-
+# =========================================================
 @router.put("/{analytics_id}")
 async def update_analytics(
     analytics_id: str,
     data: AnalyticsCreate
 ):
 
-    if not ObjectId.is_valid(analytics_id):
+    if not ObjectId.is_valid(
+        analytics_id
+    ):
+
         return {
             "message": "Invalid analytics ID"
         }
 
     result = await db.analytics.update_one(
         {
-            "_id": ObjectId(analytics_id)
+            "_id": ObjectId(
+                analytics_id
+            )
         },
         {
             "$set": {
                 "video_id": data.video_id,
-                "duration_seconds": data.duration_seconds,
-                "processing_time_seconds": data.processing_time_seconds,
-                "word_count": data.word_count,
-                "keyword_count": data.keyword_count,
-                "key_moment_count": data.key_moment_count,
-                "summary_generated": data.summary_generated,
-                "updated_at": datetime.now(timezone.utc)
+
+                "duration_seconds": (
+                    data.duration_seconds
+                ),
+
+                "processing_time_seconds": (
+                    data.processing_time_seconds
+                ),
+
+                "word_count": (
+                    data.word_count
+                ),
+
+                "keyword_count": (
+                    data.keyword_count
+                ),
+
+                "key_moment_count": (
+                    data.key_moment_count
+                ),
+
+                "summary_generated": (
+                    data.summary_generated
+                ),
+
+                "updated_at": datetime.now(
+                    timezone.utc
+                )
             }
         }
     )
 
     if result.matched_count == 0:
+
         return {
             "message": "Analytics not found"
         }
@@ -186,25 +401,32 @@ async def update_analytics(
     }
 
 
-# =========================
+# =========================================================
 # DELETE ANALYTICS
-# =========================
-
+# =========================================================
 @router.delete("/{analytics_id}")
-async def delete_analytics(analytics_id: str):
+async def delete_analytics(
+    analytics_id: str
+):
 
-    if not ObjectId.is_valid(analytics_id):
+    if not ObjectId.is_valid(
+        analytics_id
+    ):
+
         return {
             "message": "Invalid analytics ID"
         }
 
     result = await db.analytics.delete_one(
         {
-            "_id": ObjectId(analytics_id)
+            "_id": ObjectId(
+                analytics_id
+            )
         }
     )
 
     if result.deleted_count == 0:
+
         return {
             "message": "Analytics not found"
         }

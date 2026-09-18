@@ -6,26 +6,33 @@ function UploadHistory() {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    // Get logged-in user email
     const email =
       localStorage.getItem("loggedInUser") ||
       localStorage.getItem("loggedInUserEmail");
 
-    // If user is not logged in
     if (!email) {
       navigate("/login");
       return;
     }
 
-    // Get history for this user
-    const key = `uploadHistory_${email}`;
+    const key = "uploadHistory_" + email;
     const saved = localStorage.getItem(key);
 
     if (saved) {
       try {
-        setHistory(JSON.parse(saved));
+        const parsedHistory = JSON.parse(saved);
+
+        if (Array.isArray(parsedHistory)) {
+          setHistory(parsedHistory);
+        } else {
+          setHistory([]);
+        }
       } catch (error) {
-        console.error("Error reading upload history:", error);
+        console.error(
+          "Error reading upload history:",
+          error
+        );
+
         setHistory([]);
       }
     } else {
@@ -33,89 +40,179 @@ function UploadHistory() {
     }
   }, [navigate]);
 
-  // Open Results page
   const viewResults = (video) => {
-    navigate("/results", {
-      state: {
-        videoName: video.filename,
-        transcript:
-          "This is the transcript generated from the uploaded video using Whisper.",
-        shortSummary:
-          "The video explains the main concepts discussed in the uploaded content.",
-        detailedSummary:
-          "The detailed AI-generated summary of the uploaded video will appear here after backend processing.",
-      },
-    });
+    const email =
+      localStorage.getItem("loggedInUser") ||
+      localStorage.getItem("loggedInUserEmail");
+
+    if (!email) {
+      navigate("/login");
+      return;
+    }
+
+    if (!video || !video.id) {
+      console.error("Video ID is missing.");
+      return;
+    }
+
+    // Store the selected video so Results.jsx
+    // can fetch its real backend data.
+    localStorage.setItem(
+      "currentVideo_" + email,
+      JSON.stringify(video)
+    );
+
+    navigate("/results");
+  };
+
+  const getStatusText = (status) => {
+    if (status === "Completed") {
+      return "✓ Completed";
+    }
+
+    if (status === "Failed") {
+      return "✕ Failed";
+    }
+
+    if (status === "Processing") {
+      return "⏳ Processing";
+    }
+
+    if (status === "Uploaded") {
+      return "↑ Uploaded";
+    }
+
+    return "Not Started";
+  };
+
+  const getStatusStyle = (status) => {
+    if (status === "Completed") {
+      return styles.completedStatus;
+    }
+
+    if (status === "Failed") {
+      return styles.failedStatus;
+    }
+
+    if (status === "Processing") {
+      return styles.processingStatus;
+    }
+
+    return styles.uploadedStatus;
   };
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
 
-        <h1>📁 Upload History</h1>
+        <h1 style={styles.heading}>
+          📁 Upload History
+        </h1>
 
         <p style={styles.subtitle}>
-          Your uploaded videos
+          View your previously uploaded videos.
         </p>
 
         {history.length === 0 ? (
           <div style={styles.empty}>
-            <div style={styles.bigIcon}>🎬</div>
 
-            <h2>No videos uploaded yet</h2>
+            <div style={styles.bigIcon}>
+              🎬
+            </div>
 
-            <p>
+            <h2 style={styles.emptyHeading}>
+              No Videos Uploaded Yet
+            </h2>
+
+            <p style={styles.emptyText}>
               Your uploaded videos will appear here.
             </p>
+
           </div>
         ) : (
-          <div>
+          <div style={styles.historyList}>
+
             {history.map((video, index) => (
               <div
                 key={video.id || index}
                 style={styles.video}
               >
-                <div style={styles.videoName}>
-                  🎥 {video.filename}
+
+                <div style={styles.videoHeader}>
+
+                  <div style={styles.videoName}>
+                    🎥 {video.filename || "Unnamed video"}
+                  </div>
+
+                  <div
+                    style={getStatusStyle(
+                      video.status
+                    )}
+                  >
+                    {getStatusText(video.status)}
+                  </div>
+
                 </div>
 
-                <div>
-                  Upload Date:{" "}
-                  {video.uploadDate || "Not available"}
+                <div style={styles.details}>
+
+                  <div style={styles.detailItem}>
+                    <span style={styles.label}>
+                      Upload Date
+                    </span>
+
+                    <span>
+                      {video.uploadDate ||
+                        "Not available"}
+                    </span>
+                  </div>
+
+                  {video.id && (
+                    <div style={styles.detailItem}>
+                      <span style={styles.label}>
+                        Video ID
+                      </span>
+
+                      <span style={styles.videoId}>
+                        {video.id}
+                      </span>
+                    </div>
+                  )}
+
                 </div>
 
-                <div style={styles.status}>
-                  {video.status === "Completed"
-                    ? "✓ Completed"
-                    : video.status === "Failed"
-                    ? "✕ Failed"
-                    : "⏳ Processing"}
-                </div>
-
-                {video.status === "Completed" && (
+                {video.id && (
                   <button
-                    onClick={() => viewResults(video)}
+                    onClick={() =>
+                      viewResults(video)
+                    }
                     style={styles.resultsButton}
                   >
                     📄 View Results
                   </button>
                 )}
+
               </div>
             ))}
+
           </div>
         )}
 
         <div style={styles.buttons}>
 
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() =>
+              navigate("/dashboard")
+            }
             style={styles.dashboardButton}
           >
             ← Dashboard
           </button>
 
           <button
-            onClick={() => navigate("/upload")}
+            onClick={() =>
+              navigate("/upload")
+            }
             style={styles.uploadButton}
           >
             🎥 Upload Video
@@ -132,21 +229,28 @@ const styles = {
   page: {
     minHeight: "100vh",
     background: "#f1f5f9",
-    padding: "40px",
+    padding: "40px 20px",
     fontFamily: "Arial, sans-serif",
   },
 
   container: {
     maxWidth: "900px",
     margin: "0 auto",
-    background: "white",
+    background: "#ffffff",
     padding: "40px",
     borderRadius: "15px",
     boxShadow: "0 5px 20px rgba(0,0,0,0.08)",
   },
 
+  heading: {
+    margin: 0,
+    fontSize: "32px",
+    color: "#1e293b",
+  },
+
   subtitle: {
     color: "#64748b",
+    marginTop: "8px",
     marginBottom: "30px",
   },
 
@@ -155,38 +259,104 @@ const styles = {
     padding: "50px 20px",
     border: "2px dashed #cbd5e1",
     borderRadius: "12px",
+    background: "#f8fafc",
   },
 
   bigIcon: {
     fontSize: "50px",
+    marginBottom: "15px",
+  },
+
+  emptyHeading: {
+    margin: "0 0 10px",
+    color: "#334155",
+  },
+
+  emptyText: {
+    margin: 0,
+    color: "#64748b",
+  },
+
+  historyList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
   },
 
   video: {
     padding: "20px",
-    marginBottom: "15px",
     background: "#f8fafc",
     borderRadius: "10px",
     border: "1px solid #e2e8f0",
   },
 
+  videoHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap",
+  },
+
   videoName: {
     fontSize: "18px",
     fontWeight: "bold",
-    marginBottom: "10px",
+    color: "#1e293b",
+    wordBreak: "break-word",
   },
 
-  status: {
-    marginTop: "10px",
+  completedStatus: {
+    color: "#15803d",
     fontWeight: "bold",
   },
 
-  resultsButton: {
+  failedStatus: {
+    color: "#dc2626",
+    fontWeight: "bold",
+  },
+
+  processingStatus: {
+    color: "#d97706",
+    fontWeight: "bold",
+  },
+
+  uploadedStatus: {
+    color: "#2563eb",
+    fontWeight: "bold",
+  },
+
+  details: {
     marginTop: "15px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    color: "#475569",
+    fontSize: "14px",
+  },
+
+  detailItem: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  },
+
+  label: {
+    fontWeight: "bold",
+    color: "#334155",
+  },
+
+  videoId: {
+    color: "#64748b",
+    wordBreak: "break-all",
+  },
+
+  resultsButton: {
+    marginTop: "18px",
     padding: "10px 18px",
     border: "none",
     borderRadius: "8px",
     background: "#16a34a",
-    color: "white",
+    color: "#ffffff",
     cursor: "pointer",
     fontWeight: "bold",
   },
@@ -195,6 +365,7 @@ const styles = {
     display: "flex",
     gap: "15px",
     marginTop: "30px",
+    flexWrap: "wrap",
   },
 
   dashboardButton: {
@@ -202,7 +373,9 @@ const styles = {
     border: "none",
     borderRadius: "8px",
     background: "#e2e8f0",
+    color: "#334155",
     cursor: "pointer",
+    fontWeight: "bold",
   },
 
   uploadButton: {
@@ -210,8 +383,9 @@ const styles = {
     border: "none",
     borderRadius: "8px",
     background: "#3157d5",
-    color: "white",
+    color: "#ffffff",
     cursor: "pointer",
+    fontWeight: "bold",
   },
 };
 
