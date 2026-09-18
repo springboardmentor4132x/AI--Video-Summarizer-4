@@ -13,22 +13,27 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class TranscriptSegment(BaseModel):
+    """One timestamped Whisper transcript segment."""
+
+    start_time: float
+    end_time: float
+    text: str = ""
+
+
 class KeyMoment(BaseModel):
-    """
-    One detected 'important moment' in a video. Embedded inside the
-    Video document (same pattern as transcript/summary being plain
-    fields, not a separate collection). Also reused for highlights,
-    since a highlight is just a top-ranked key moment.
-    """
-    start_time: float          # seconds from video start
-    end_time: float            # seconds from video start
-    label: str = ""            # short human-readable title
-    text: str = ""             # transcript excerpt this moment covers
-    importance: float = 0.0    # 0.0-1.0 relevance/importance score
+    """One detected important moment in a video."""
+
+    start_time: float
+    end_time: float
+    label: str = ""
+    text: str = ""
+    importance: float = 0.0
 
 
 class Keyword(BaseModel):
     """One extracted keyword/topic and its relevance score."""
+
     word: str
     score: float = 0.0
 
@@ -44,7 +49,8 @@ class Video(Document):
     status: str = "uploaded"
 
     # Current processing stage
-    # upload | audio | transcription | summary | key_moments | highlights | keywords | done | failed
+    # upload | audio | transcription | summary | key_moments |
+    # highlights | keywords | done | failed
     current_stage: str = "upload"
 
     # Overall completion percentage
@@ -61,8 +67,13 @@ class Video(Document):
 
     # Processing results
     transcript: str = ""
+    transcript_segments: List[TranscriptSegment] = []
+
+    # Summaries
     short_summary: str = ""
-    summary: str = ""  # detailed summary
+    summary: str = ""
+
+    # Analysis
     key_moments: List[KeyMoment] = []
     highlights: List[KeyMoment] = []
     keywords: List[Keyword] = []
