@@ -4,14 +4,20 @@ from pymongo import AsyncMongoClient
 from dotenv import load_dotenv
 import os
 
+# Load environment variables
 load_dotenv()
 
-app = FastAPI(title="ClipMind AI Backend")
+# --------------------------------------------------
+# FastAPI application
+# --------------------------------------------------
 
+app = FastAPI(
+    title="ClipMind AI Backend"
+)
 
-# ==============================
-# CORS CONFIGURATION
-# ==============================
+# --------------------------------------------------
+# CORS configuration
+# --------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,78 +34,126 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ==============================
-# MONGODB CONFIGURATION
-# ==============================
+# --------------------------------------------------
+# MongoDB configuration
+# --------------------------------------------------
 
 MONGO_URI = os.getenv("MONGO_URI")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "clipmindAI")
 
-client = AsyncMongoClient(MONGO_URI)
-db = client[MONGO_DB_NAME]
+MONGO_DB_NAME = os.getenv(
+    "MONGO_DB_NAME",
+    "clipmindAI"
+)
 
+# Create MongoDB client
+client = AsyncMongoClient(
+    MONGO_URI
+)
 
-# ==============================
-# ROOT ENDPOINT
-# ==============================
+# Select database
+db = client[
+    MONGO_DB_NAME
+]
+
+# --------------------------------------------------
+# Root endpoint
+# --------------------------------------------------
 
 @app.get("/")
 async def root():
     return {
-        "message": "ClipMind AI Backend is running"
+        "message":
+        "ClipMind AI Backend is running"
     }
 
 
-# ==============================
-# DATABASE CONNECTION TEST
-# ==============================
+# --------------------------------------------------
+# MongoDB test endpoint
+# --------------------------------------------------
 
 @app.get("/test-db")
 async def test_db():
 
-    result = await client.admin.command("ping")
+    result = await client.admin.command(
+        "ping"
+    )
 
     return {
-        "message": "MongoDB Atlas connected successfully!",
+        "message":
+        "MongoDB Atlas connected successfully!",
         "ping": result["ok"]
     }
 
 
-# ==============================
-# API ROUTERS
-# ==============================
+# --------------------------------------------------
+# API Routers
+# --------------------------------------------------
 
-# Users
-from app.api.users import router as users_router
-app.include_router(users_router)
+from app.api.users import (
+    router as users_router
+)
+
+from app.api.videos import (
+    router as videos_router
+)
+
+from app.api.key_moments import (
+    router as key_moments_router
+)
+
+from app.api.keywords import (
+    router as keywords_router
+)
+
+from app.api.analytics import (
+    router as analytics_router
+)
+
+from app.api.transcripts import (
+    router as transcripts_router
+)
+
+from app.api.summaries import (
+    router as summaries_router
+)
+
+from app.api.video_dna import (
+    router as video_dna_router
+)
 
 
-# Videos
-from app.api.videos import router as videos_router
-app.include_router(videos_router)
+# --------------------------------------------------
+# Register routers
+# --------------------------------------------------
 
+app.include_router(
+    users_router
+)
 
-# Key Moments
-from app.api.key_moments import router as key_moments_router
-app.include_router(key_moments_router)
+app.include_router(
+    videos_router
+)
 
+app.include_router(
+    key_moments_router
+)
 
-# Keywords
-from app.api.keywords import router as keywords_router
-app.include_router(keywords_router)
+app.include_router(
+    keywords_router
+)
 
+app.include_router(
+    analytics_router
+)
 
-# Analytics
-from app.api.analytics import router as analytics_router
-app.include_router(analytics_router)
+app.include_router(
+    transcripts_router
+)
 
+app.include_router(
+    summaries_router
+)
 
-# Transcripts
-from app.api.transcripts import router as transcripts_router
-app.include_router(transcripts_router)
-
-
-# Summaries
-from app.api.summaries import router as summaries_router
-app.include_router(summaries_router)
+app.include_router(
+    video_dna_router
+)

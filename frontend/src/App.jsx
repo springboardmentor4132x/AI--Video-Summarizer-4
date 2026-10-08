@@ -1,5 +1,14 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate
+} from "react-router-dom";
+
+// --------------------------------------------------
+// Pages
+// --------------------------------------------------
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -9,24 +18,38 @@ import UploadHistory from "./pages/UploadHistory";
 import ProcessingStatus from "./pages/ProcessingStatus";
 import Results from "./pages/Results";
 import KeyMoments from "./pages/KeyMoments";
-import Summary from "./pages/Summary";
 import Transcript from "./pages/Transcript";
-import Keywords from "./pages/Keywords";
-import Analytics from "./pages/Analytics";
-import ContentInsights from "./pages/ContentInsights";
-import UsageReports from "./pages/UsageReports";
+import Summary from "./pages/Summary";
+import VideoDNA from "./pages/VideoDNA";
+
+// --------------------------------------------------
+// App
+// --------------------------------------------------
 
 function App() {
   return (
     <BrowserRouter>
+
       <Routes>
-        {/* Default */}
+
+        {/* ---------------------------------------- */}
+        {/* Default route */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/"
-          element={<Navigate to="/login" replace />}
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
         />
 
+        {/* ---------------------------------------- */}
         {/* Authentication */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/login"
           element={<Login />}
@@ -37,84 +60,103 @@ function App() {
           element={<Register />}
         />
 
+        {/* ---------------------------------------- */}
         {/* Dashboard */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/dashboard"
           element={<Dashboard />}
         />
 
+        {/* ---------------------------------------- */}
         {/* Video Upload */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/upload"
           element={<VideoUpload />}
         />
 
-        {/* Upload History */}
-        <Route
-          path="/history"
-          element={<UploadHistory />}
-        />
-
+        {/* ---------------------------------------- */}
         {/* Processing */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/processing"
           element={<ProcessingStatus />}
         />
 
+        {/* ---------------------------------------- */}
         {/* Results */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/results"
           element={<Results />}
         />
 
+        {/* ---------------------------------------- */}
         {/* Transcript */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/transcript"
           element={<Transcript />}
         />
 
+        {/* ---------------------------------------- */}
         {/* Summary */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/summary"
           element={<Summary />}
         />
 
+        {/* ---------------------------------------- */}
         {/* Key Moments */}
+        {/* ---------------------------------------- */}
+
         <Route
           path="/key-moments"
           element={<KeyMoments />}
         />
 
-        {/* Keywords */}
+        {/* ---------------------------------------- */}
+        {/* Upload History */}
+        {/* ---------------------------------------- */}
+
         <Route
-          path="/keywords"
-          element={<Keywords />}
+          path="/history"
+          element={<UploadHistory />}
         />
 
-        {/* Analytics */}
+        {/* ---------------------------------------- */}
+        {/* Video DNA */}
+        {/* ---------------------------------------- */}
+
         <Route
-          path="/analytics"
-          element={<Analytics />}
+          path="/video-dna"
+          element={<VideoDNA />}
         />
 
-        {/* Content Insights */}
-        <Route
-          path="/content-insights"
-          element={<ContentInsights />}
-        />
+        {/* ---------------------------------------- */}
+        {/* Fallback */}
+        {/* ---------------------------------------- */}
 
-        {/* Usage Reports */}
-        <Route
-          path="/usage-reports"
-          element={<UsageReports />}
-        />
-
-        {/* Unknown route */}
         <Route
           path="*"
-          element={<Navigate to="/login" replace />}
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
         />
+
       </Routes>
+
     </BrowserRouter>
   );
 }
