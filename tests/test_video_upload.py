@@ -1,0 +1,59 @@
+import pytest
+
+pytestmark = pytest.mark.asyncio
+
+
+async def test_upload_rejects_unsupported_format(client, auth_headers):
+    files = {"file": ("clip.exe", b"MZ\x00\x00", "application/octet-stream")}
+    r = await client.post("/api/videos/upload", headers=auth_headers, files=files)
+    assert r.status_code == 400
+    assert "format" in r.json()["detail"].lower()
+
+
+async def test_upload_accepts_valid_extension(client, auth_headers):
+    fake_video = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 1000
+    files = {"file": ("clip.mp4", fake_video, "video/mp4")}
+    r = await client.post("/api/videos/upload", headers=auth_headers, files=files)
+    assert r.status_code == 201
+    body = r.json()
+    assert body["status"] in ("uploaded", "processing")
+    assert body["upload_progress"] == 100
+
+
+async def test_upload_requires_auth(client):
+    fake_video = b"\x00\x00\x00\x18ftypmp42"
+    files = {"file": ("clip.mp4", fake_video, "video/mp4")}
+    r = await client.post("/api/videos/upload", files=files)
+    assert r.status_code == 401
+
+
+async def test_history_starts_empty(client, auth_headers):
+    r = await client.get("/api/videos/history", headers=auth_headers)
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+async def test_video_status_not_found(client, auth_headers):
+    r = await client.get("/api/videos/000000000000000000000000/status", headers=auth_headers)
+    assert r.status_code == 404
+
+
+async def test_cross_user_ownership_enforced(client, auth_headers):
+    # user 1 uploads a video
+    fake_video = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 1000
+    files = {"file": ("clip.mp4", fake_video, "video/mp4")}
+    r = await client.post("/api/videos/upload", headers=auth_headers, files=files)
+    video_id = r.json()["id"]
+
+    # user 2 should not be able to see it
+    await client.post("/api/auth/register", json={
+        "name": "Eve", "email": "eve@example.com",
+        "password": "password123", "role": "learner",
+    })
+    r2 = await client.post("/api/auth/login", data={
+        "username": "eve@example.com", "password": "password123",
+    })
+    eve_headers = {"Authorization": f"Bearer {r2.json()['access_token']}"}
+
+    r = await client.get(f"/api/videos/{video_id}/status", headers=eve_headers)
+    assert r.status_code == 404

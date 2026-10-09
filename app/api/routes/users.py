@@ -1,8 +1,3 @@
-"""
-User + role management.
-Provides "/me" plus example endpoints demonstrating role-based access
-for all four roles defined in the project.
-"""
 from fastapi import APIRouter, Depends
 from app.api.deps import get_current_user, require_role
 from app.core.roles import ADMINISTRATOR, CONTENT_CREATOR, EDUCATOR, LEARNER

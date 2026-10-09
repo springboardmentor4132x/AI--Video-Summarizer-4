@@ -1,26 +1,16 @@
 """
-Service package exports.
+Makes app.services a proper package and re-exports the pipeline
+functions so routes can do:
 
-Keeps the existing video-processing pipeline available while
-also exposing the new Module 3/4 services.
+    from app.services import process_video, generate_summary
+
+instead of reaching into the specific file that defines them.
+
+generate_summary here is the LOCAL (Hugging Face BART) implementation —
+see process_video.py, which in turn delegates the actual model work to
+summary_service.py. There is no OpenAI dependency in this import path.
 """
 
-from app.services.legacy import (
-    extract_audio,
-    generate_summary,
-    get_openai_client,
-    get_whisper_model,
-    process_video,
-    transcribe_audio,
-    update_progress,
-)
+from app.services.process_video import process_video, generate_summary
 
-__all__ = [
-    "extract_audio",
-    "generate_summary",
-    "get_openai_client",
-    "get_whisper_model",
-    "process_video",
-    "transcribe_audio",
-    "update_progress",
-]
+__all__ = ["process_video", "generate_summary"]

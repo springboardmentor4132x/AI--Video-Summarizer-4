@@ -5,7 +5,6 @@ Video upload, processing, status, transcript and analysis routes.
 import os
 import uuid
 from typing import List
-
 from beanie import PydanticObjectId
 from fastapi import (
     APIRouter,
@@ -15,14 +14,19 @@ from fastapi import (
     HTTPException,
     UploadFile,
 )
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_role
 from app.core.config import settings
+from app.core.roles import CONTENT_CREATOR, EDUCATOR, ADMINISTRATOR
 from app.models.user import User
 from app.models.video import Video
 from app.schemas.video import (
+    ChapterOut,
     KeyMomentOut,
     KeywordOut,
+    SummaryTranslationOut,
     TranscriptSegmentOut,
     VideoOut,
 )
@@ -30,6 +34,12 @@ from app.services import process_video, generate_summary
 from app.services.highlight_service import generate_highlights
 from app.services.key_moments_service import detect_key_moments
 from app.services.keyword_service import extract_keywords
+from app.services.chapter_service import generate_chapters
+from app.services.translation_service import translate_summary, SUPPORTED_LANGUAGES
+from app.services.qa_service import answer_question
+from app.services.evidence_service import answer_with_evidence  # Evidence Lens
+from app.services.pdf_service import build_report_pdf
+from app.services.model_manager import ModelUnavailable
 
 
 router = APIRouter(
@@ -102,6 +112,18 @@ def _to_out(video: Video) -> VideoOut:
             )
             for keyword in video.keywords
         ],
+        chapters=[
+            ChapterOut(
+                title=chapter.title,
+                start_time=chapter.start_time,
+                end_time=chapter.end_time,
+            )
+            for chapter in video.chapters
+        ],
+        translations={
+            lang: SummaryTranslationOut(short=entry.short, detailed=entry.detailed)
+            for lang, entry in video.translations.items()
+        },
         error_message=video.error_message,
         uploaded_at=video.uploaded_at,
     )
@@ -140,7 +162,11 @@ async def _find_owned_video(
 async def upload_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    # Uploading/producing content is restricted to the roles that make
+    # sense as content producers in this platform; Learner is a
+    # consumer role (still free to view, search, bookmark, clip, ask
+    # Q&A about, and translate any video they were given access to).
+    current_user: User = Depends(require_role(CONTENT_CREATOR, EDUCATOR, ADMINISTRATOR)),
 ):
     """Upload a video and start background processing."""
 
@@ -321,8 +347,8 @@ async def generate_video_summary(
 
         summary = generate_summary(video.transcript)
 
-        video.summary = summary
-        video.short_summary = summary
+        video.summary = summary[1]
+        video.short_summary = summary[0]
         video.summary_progress = 100
         video.progress = 100
         video.current_stage = "done"
@@ -374,18 +400,31 @@ async def generate_video_key_moments(
         video.status = "processing"
         await video.save()
 
+        # NOTE: keys must be "start_time"/"end_time" to match what
+        # key_moments_service._merge_segments / _detect_from_segments
+        # expect. Using "start"/"end" here would silently produce
+        # zero candidates (KeyError-safe via .get in some places, but
+        # inconsistent with the service's real field names).
         segments = [
             {
-                "start": segment.start_time,
-                "end": segment.end_time,
+                "start_time": segment.start_time,
+                "end_time": segment.end_time,
                 "text": segment.text,
             }
             for segment in video.transcript_segments
         ]
 
+        # IMPORTANT: transcript_segments must be passed as a keyword
+        # argument. detect_key_moments's signature is:
+        #   detect_key_moments(transcript, video_duration_seconds=None,
+        #                       transcript_segments=None)
+        # Passing `segments` positionally lands it in
+        # `video_duration_seconds` instead, which silently skips the
+        # real segment-based detection and can crash the plain-text
+        # fallback path (dividing a list by an int).
         moments = detect_key_moments(
             video.transcript,
-            segments,
+            transcript_segments=segments,
         )
 
         video.key_moments = [
@@ -559,3 +598,223 @@ async def generate_video_keywords(
             status_code=500,
             detail=f"Keyword extraction failed: {exc}",
         )
+
+# =====================================================================
+# POST-MILESTONE-3 FEATURES: video file streaming, chapters,
+# multilingual summary translation, transcript Q&A, PDF export.
+# All reuse _find_owned_video / _to_out and the existing Video model --
+# no second pipeline, no duplicate auth mechanism.
+# =====================================================================
+
+
+@router.get("/{video_id}/file")
+async def get_video_file(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Serve the raw uploaded video file, for the frontend <video> player.
+
+    There was previously no way to play back an uploaded video at all --
+    this is the minimum needed for that, reusing the same ownership
+    check as every other video route.
+    """
+    video = await _find_owned_video(video_id, current_user)
+
+    if not video.file_path or not os.path.exists(video.file_path):
+        raise HTTPException(status_code=404, detail="Video file not found on disk.")
+
+    return FileResponse(video.file_path, media_type="video/mp4", filename=video.filename)
+
+
+class TranslateRequest(BaseModel):
+    language: str  # one of translation_service.SUPPORTED_LANGUAGES keys
+
+
+@router.post("/{video_id}/translate", response_model=VideoOut)
+async def translate_video_summary(
+    video_id: str,
+    payload: TranslateRequest,
+    current_user: User = Depends(get_current_user),
+):
+    video = await _find_owned_video(video_id, current_user)
+
+    if payload.language not in SUPPORTED_LANGUAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported language '{payload.language}'. "
+            f"Supported: {', '.join(SUPPORTED_LANGUAGES)}",
+        )
+
+    # Cache hit: never call the translation API twice for the same
+    # video+language.
+    if payload.language in video.translations:
+        return _to_out(video)
+
+    if not video.summary.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Summary is not available yet -- nothing to translate.",
+        )
+
+    try:
+        short_t, detailed_t = translate_summary(
+            video.short_summary, video.summary, payload.language
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except ModelUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Translation failed: {exc}")
+
+    from app.models.video import SummaryTranslation
+
+    video.translations[payload.language] = SummaryTranslation(short=short_t, detailed=detailed_t)
+    await video.save()
+
+    return _to_out(video)
+
+
+@router.post("/{video_id}/chapters", response_model=VideoOut)
+async def generate_video_chapters(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Generate (or return already-generated) chapters for this video."""
+    video = await _find_owned_video(video_id, current_user)
+
+    # Generate once, reuse after that -- no repeated work.
+    if video.chapters:
+        return _to_out(video)
+
+    if not video.key_moments:
+        raise HTTPException(
+            status_code=400,
+            detail="Key moments are not available yet -- chapters need them first.",
+        )
+
+    key_moment_dicts = [km.model_dump() for km in video.key_moments]
+    video_duration = video.transcript_segments[-1].end_time if video.transcript_segments else None
+
+    chapter_dicts = generate_chapters(key_moment_dicts, video_duration_seconds=video_duration)
+
+    from app.models.video import Chapter
+
+    video.chapters = [Chapter(**c) for c in chapter_dicts]
+    await video.save()
+
+    return _to_out(video)
+
+
+class AskRequest(BaseModel):
+    question: str
+
+
+# ---- Evidence Lens: answer + the transcript evidence that supports it ----
+
+class EvidenceItem(BaseModel):
+    start_time: float
+    end_time: float
+    text: str
+    score: float
+    strength: str  # "strong" | "moderate" | "weak"
+    matched_words: List[str] = []
+
+
+class AskResponse(BaseModel):
+    answer: str
+    relevant_timestamps: List[float]  # kept for backward compatibility
+    insufficient_info: bool
+    evidence: List[EvidenceItem] = []
+
+
+@router.post("/{video_id}/ask", response_model=AskResponse)
+async def ask_about_video(
+    video_id: str,
+    payload: AskRequest,
+    current_user: User = Depends(get_current_user),
+):
+    video = await _find_owned_video(video_id, current_user)
+
+    if not video.transcript_segments:
+        raise HTTPException(
+            status_code=400,
+            detail="Transcript is not available yet -- nothing to answer from.",
+        )
+
+    if not payload.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    segments = [
+        {"start_time": s.start_time, "end_time": s.end_time, "text": s.text}
+        for s in video.transcript_segments
+    ]
+
+    try:
+        result = answer_with_evidence(payload.question, segments)
+    except ModelUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Q&A failed: {exc}")
+
+    return AskResponse(
+        answer=result["answer"],
+        relevant_timestamps=[e["start_time"] for e in result["evidence"]],
+        insufficient_info=result["insufficient_info"],
+        evidence=result["evidence"],
+    )
+
+
+@router.get("/{video_id}/export-pdf")
+async def export_video_pdf(
+    video_id: str,
+    language: str | None = None,
+    current_user: User = Depends(get_current_user),
+):
+    video = await _find_owned_video(video_id, current_user)
+
+    if not video.summary.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Summary is not available yet -- nothing to export.",
+        )
+
+    short_summary, detailed_summary = video.short_summary, video.summary
+    language_name = None
+
+    if language and language != "en":
+        if language not in SUPPORTED_LANGUAGES:
+            raise HTTPException(status_code=400, detail=f"Unsupported language '{language}'.")
+        translation = video.translations.get(language)
+        if translation is None:
+            raise HTTPException(
+                status_code=400,
+                detail="This language hasn't been translated yet -- translate the summary first.",
+            )
+        short_summary, detailed_summary = translation.short, translation.detailed
+        language_name = SUPPORTED_LANGUAGES[language]
+
+    try:
+        pdf_bytes = build_report_pdf(
+            filename=video.filename,
+            uploaded_at=video.uploaded_at,
+            short_summary=short_summary,
+            detailed_summary=detailed_summary,
+            chapters=[c.model_dump() for c in video.chapters],
+            key_moments=[m.model_dump() for m in video.key_moments],
+            keywords=[k.model_dump() for k in video.keywords],
+            language_code=language if language_name else None,
+            language_name=language_name,
+        )
+    except RuntimeError as exc:
+        # Honest failure (e.g. no Unicode font available for this
+        # script) -- not a silently broken/garbled PDF.
+        raise HTTPException(status_code=501, detail=str(exc))
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{video.filename}_report.pdf"'
+        },
+    )
