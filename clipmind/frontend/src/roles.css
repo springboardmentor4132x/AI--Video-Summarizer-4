@@ -1,0 +1,44 @@
+/* Educator / Administrator / Shared-with-me pages. Theme tokens only, so
+   light and dark both work. Tables scroll inside their own wrapper so the
+   page never overflows sideways on a phone. */
+
+.role-page { max-width: 1100px; margin: 0 auto; }
+
+.role-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); margin: var(--space-4) 0; }
+.role-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); }
+.role-stat b { font-size: 1.6rem; color: var(--text-h); }
+.role-stat span { color: var(--text); font-size: 0.85rem; }
+
+.role-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-4) 0; border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+.role-tabs button { background: transparent; border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); cursor: pointer; }
+.role-tabs button.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+
+.role-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; }
+.role-filters input, .role-filters select { flex: 1 1 200px; min-width: 0; }
+
+.role-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.role-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.role-table th, .role-table td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); vertical-align: top; }
+.role-table th { color: var(--text-h); white-space: nowrap; }
+.role-table tr.disabled td { opacity: 0.55; }
+.role-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+.role-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; background: var(--surface-muted); border: 1px solid var(--border); }
+.role-badge.done { border-color: var(--success); }
+.role-badge.failed { border-color: var(--error); }
+
+.role-msg { padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.role-msg.ok { border-color: var(--success); }
+.role-msg.error { border-color: var(--error); }
+
+.role-panel { margin-top: var(--space-4); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.role-list, .role-breakdown { padding-left: var(--space-4); }
+.role-cards { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); }
+.role-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-4); }
+button.danger { border-color: var(--error); }
+
+/* Transcript editing */
+.transcript-edit-bar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-3) 0; }
+.transcript-edit-note { padding: var(--space-2) var(--space-3); border: 1px solid var(--warning); border-radius: var(--radius-sm); }
+.transcript-segments textarea { width: 100%; box-sizing: border-box; min-height: 3.2em; }
+.transcript-segments li.edited { border-left: 3px solid var(--accent); padding-left: var(--space-2); }

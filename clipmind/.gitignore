@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Env files (never commit real secrets)
+.env
+backend/.env
+frontend/.env
+
+# Uploads / generated media
+backend/uploaded_videos/*
+!backend/uploaded_videos/.gitkeep
+backend/generated_clips/*
+!backend/generated_clips/.gitkeep
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Test/coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Private cookie exports (Real-Time Workspace)
+*cookies*.txt

@@ -1,0 +1,690 @@
+/*
+ * ClipMind Story styles.
+ *
+ * Built on the app's existing tokens (--surface, --border, --accent,
+ * --text, --text-h ...) so it follows the Light/Dark theme automatically.
+ * The only story-specific tokens are the comic "ink" and "paper" colors
+ * below, which flip with the theme too.
+ */
+
+:root {
+  --sp-ink: #1b1b22;          /* comic panel outlines + hard shadow */
+  --sp-bubble: #ffffff;       /* speech bubbles stay bright in both themes */
+  --sp-bubble-ink: #16171d;
+  --sp-bubble-line: #1b1b22;
+  --sp-frame-bg: #0b0b0f;     /* letterbox behind frames (a screen, not a surface) */
+}
+
+:root[data-theme="dark"] {
+  --sp-ink: #e5e7eb;
+}
+
+/* ---------------------------------------------------------------- */
+/* Page chrome                                                       */
+/* ---------------------------------------------------------------- */
+
+.story-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.story-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.story-header h2 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.story-tagline {
+  margin: var(--space-1) 0 0;
+  color: var(--text);
+}
+
+.story-video-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: 14px;
+  min-width: 0;
+}
+
+.story-video-name span {
+  overflow-wrap: anywhere;
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.story-video-name a {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- */
+/* Mode selector                                                     */
+/* ---------------------------------------------------------------- */
+
+.story-modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.story-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  text-align: left;
+  padding: var(--space-4);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+}
+
+.story-mode:hover:not(:disabled) {
+  border-color: var(--accent-border);
+}
+
+.story-mode.selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.story-mode-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.story-mode-label {
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.story-mode-check {
+  color: var(--accent);
+}
+
+.story-mode-blurb {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+@media (max-width: 900px) {
+  .story-modes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .story-modes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Actions + states                                                  */
+/* ---------------------------------------------------------------- */
+
+.story-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.story-actions .story-generate {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  padding: var(--space-3) var(--space-5);
+}
+
+.story-actions .story-generate:hover:not(:disabled) {
+  border-color: var(--accent);
+  filter: brightness(1.08);
+}
+
+.story-count {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.story-warning {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border: 1px solid var(--warn-line);
+  font-size: 14px;
+}
+
+.story-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  border: 1px dashed var(--accent-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.story-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 4px solid var(--accent-bg);
+  border-top-color: var(--accent);
+  animation: story-spin 0.9s linear infinite;
+}
+
+.story-loading-now {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.story-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.story-steps li.active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.story-steps li.done {
+  color: var(--text-h);
+}
+
+.story-steps li.done::before {
+  content: "✓ ";
+  color: var(--success);
+}
+
+@keyframes story-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Panels: shared                                                    */
+/* ---------------------------------------------------------------- */
+
+.story-grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sp {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.sp h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--text-h);
+}
+
+.sp p {
+  margin: 0;
+}
+
+.sp-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-width: 0;
+}
+
+.sp-concept {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.sp-concept strong {
+  color: var(--text-h);
+}
+
+/* The frame is a button (click = watch this moment). */
+.sp .sp-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--sp-frame-bg);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.sp .sp-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sp .sp-frame:hover img {
+  filter: brightness(1.08);
+}
+
+.sp-frame-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  color: #c9ccd6;
+  font-size: 13px;
+}
+
+.sp-frame-empty strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.sp-frame-time {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sp .sp-watch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: 14px;
+  padding: var(--space-2) var(--space-4);
+}
+
+.sp .sp-watch:hover:not(:disabled) {
+  border-color: var(--accent);
+  filter: brightness(1.08);
+}
+
+.sp-watch-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  padding-left: var(--space-2);
+  border-left: 1px solid currentColor;
+  opacity: 0.85;
+}
+
+.sp-excerpt {
+  width: 100%;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.sp-excerpt summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.sp-excerpt p {
+  margin-top: var(--space-2);
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- */
+/* Comic                                                             */
+/* ---------------------------------------------------------------- */
+
+.sp-comic {
+  position: relative;
+  background: var(--surface);
+  border: 3px solid var(--sp-ink);
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 var(--sp-ink);
+}
+
+.sp-comic .sp-frame {
+  border-bottom: 3px solid var(--sp-ink);
+}
+
+.sp-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  padding: 2px var(--space-3);
+  background: var(--sp-ink);
+  color: var(--surface);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.sp .sp-bubble {
+  position: relative;
+  z-index: 1;
+  margin: -26px var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--sp-bubble);
+  color: var(--sp-bubble-ink);
+  border: 2px solid var(--sp-bubble-line);
+  border-radius: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.sp .sp-bubble::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 30px;
+  width: 14px;
+  height: 14px;
+  background: var(--sp-bubble);
+  border-top: 2px solid var(--sp-bubble-line);
+  border-left: 2px solid var(--sp-bubble-line);
+  transform: rotate(45deg);
+}
+
+@media (min-width: 720px) {
+  .story-grid-comic {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Opening "splash" panel runs full width, like a real comic page. */
+  .story-grid-comic > .sp:first-child {
+    grid-column: 1 / -1;
+  }
+  /* If the last panel would sit alone on a row, let it close the page. */
+  .story-grid-comic > .sp:last-child:nth-child(even) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Storybook                                                         */
+/* ---------------------------------------------------------------- */
+
+.story-grid-storybook {
+  gap: var(--space-6);
+}
+
+.sp-book {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.sp-book .sp-body {
+  padding: var(--space-5);
+  gap: var(--space-3);
+}
+
+.sp-book h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.sp-page {
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+}
+
+.sp-narration {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text-h);
+}
+
+.sp-narration::first-letter {
+  float: left;
+  font-size: 3em;
+  line-height: 0.9;
+  padding: 4px 8px 0 0;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+@media (min-width: 900px) {
+  .sp-book {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .sp-book .sp-frame {
+    flex: 1 1 52%;
+    aspect-ratio: auto;
+    min-height: 280px;
+  }
+  .sp-book .sp-body {
+    flex: 1 1 48%;
+    justify-content: center;
+  }
+  /* Facing pages: alternate the picture side. */
+  .sp-book:nth-child(even) {
+    flex-direction: row-reverse;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Study notes                                                       */
+/* ---------------------------------------------------------------- */
+
+.story-grid-study_notes {
+  gap: var(--space-4);
+}
+
+.sp-note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.sp-note .sp-frame {
+  border-bottom: 1px solid var(--border);
+}
+
+.sp-note-num {
+  color: var(--accent);
+}
+
+.sp-takeaway {
+  line-height: 1.5;
+  color: var(--text-h);
+}
+
+.sp-quote {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--accent-border);
+  background: var(--surface-muted);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+@media (min-width: 720px) {
+  .sp-note {
+    flex-direction: row;
+  }
+  .sp-note .sp-frame {
+    flex: 0 0 280px;
+    width: 280px;
+    aspect-ratio: auto;
+    min-height: 100%;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+  }
+  .sp-note .sp-body {
+    flex: 1 1 auto;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Storyboard                                                        */
+/* ---------------------------------------------------------------- */
+
+.sp-board {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.sp-board-frame {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Black letterbox bars, like a film frame. */
+.sp-board-frame .sp-frame {
+  border-top: 10px solid #000;
+  border-bottom: 10px solid #000;
+  aspect-ratio: 2.2 / 1;
+}
+
+.sp-shot {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: 13px;
+  z-index: 1;
+}
+
+.sp-board h3 {
+  font-size: 16px;
+}
+
+.sp-board-desc {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-h);
+}
+
+.sp-board-meta {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+@media (min-width: 720px) {
+  .story-grid-storyboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1080px) {
+  .story-grid-storyboard {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Entry point on the video page                                     */
+/* ---------------------------------------------------------------- */
+
+.story-promo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  background: var(--accent-bg);
+}
+
+.story-promo strong {
+  display: block;
+  color: var(--text-h);
+  font-size: 16px;
+}
+
+.story-promo p {
+  margin: var(--space-1) 0 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.story-promo button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- */
+/* Small screens + motion                                            */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .story-header h2 {
+    font-size: 26px;
+  }
+  .sp-comic {
+    box-shadow: 4px 4px 0 var(--sp-ink);
+  }
+  .sp-book .sp-body {
+    padding: var(--space-4);
+  }
+  .sp-narration {
+    font-size: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-spinner {
+    animation-duration: 3s;
+  }
+}

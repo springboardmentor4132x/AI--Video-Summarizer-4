@@ -1,0 +1,238 @@
+/* Adaptive Memory Deck -- integrated from Amrita's design. Tokens map onto the shared theme. */
+.memory-deck-page {
+  /* theme-aware: follow the canonical data-theme palette */
+  --memory-ink: var(--text-h);
+  --memory-accent: var(--accent);
+  --memory-paper: var(--surface-muted);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.memory-deck-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.memory-deck-header h1 {
+  margin: 0;
+  color: var(--memory-ink);
+  font-size: 30px;
+}
+
+.memory-deck-header p {
+  margin: var(--space-2) 0 0;
+}
+
+.memory-deck-eyebrow {
+  color: var(--memory-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.memory-generate-form,
+.memory-deck-controls,
+.memory-recall-actions,
+.memory-rating-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.memory-generate-form select {
+  min-width: 190px;
+  max-width: 300px;
+}
+
+.memory-deck-controls {
+  justify-content: end;
+  margin: var(--space-4) 0;
+}
+
+.memory-review-card {
+  margin: var(--space-5) auto;
+  padding: clamp(20px, 5vw, 48px);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--memory-accent);
+  border-radius: 8px;
+  background-color: var(--memory-paper);
+  background-image: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 31px,
+      rgba(25, 58, 54, 0.035) 32px);
+  box-shadow: 0 14px 34px rgba(25, 58, 54, 0.08);
+}
+
+.memory-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.memory-strength {
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.strength-strong {
+  color: #17653b;
+  background: #dcefe1;
+}
+
+.strength-needs_review {
+  color: #83500b;
+  background: #f8ebca;
+}
+
+.strength-forgotten {
+  color: #963f34;
+  background: #f6dfda;
+}
+
+.memory-card-progress {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.memory-review-card h2 {
+  margin: 0 0 var(--space-4);
+  max-width: 660px;
+  color: var(--memory-ink);
+  font-size: 26px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.memory-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  color: var(--memory-accent);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.memory-source-link:hover {
+  text-decoration: underline;
+}
+
+.memory-recall-actions {
+  margin-top: var(--space-6);
+}
+
+.memory-primary {
+  color: #fff;
+  background: var(--memory-accent);
+  border-color: var(--memory-accent);
+}
+
+.memory-primary:hover:not(:disabled) {
+  background: #105d52;
+}
+
+.memory-answer {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  line-height: 1.65;
+}
+
+.memory-rating-label {
+  margin: var(--space-5) 0 var(--space-2);
+  color: var(--memory-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.memory-explain-form {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.memory-explain-form label {
+  color: var(--memory-ink);
+  font-weight: 700;
+}
+
+.memory-explain-form textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  font: inherit;
+}
+
+.memory-feedback {
+  padding: var(--space-3);
+  border-left: 3px solid var(--memory-accent);
+  background: rgba(255, 255, 255, 0.72);
+  overflow-wrap: anywhere;
+}
+
+.memory-empty-state {
+  margin: var(--space-6) auto;
+  padding: var(--space-6) var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.memory-empty-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: #17653b;
+  background: #dcefe1;
+  font-size: 22px;
+}
+
+.memory-empty-state h2 {
+  margin: var(--space-3) 0 var(--space-1);
+  color: var(--memory-ink);
+  font-size: 20px;
+}
+
+.memory-empty-state p {
+  margin: 0;
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .memory-deck-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .memory-generate-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .memory-generate-form select {
+    width: 100%;
+    max-width: none;
+  }
+  .memory-review-card h2 {
+    font-size: 22px;
+  }
+  .memory-rating-actions>button {
+    flex: 1 1 130px;
+  }
+}
