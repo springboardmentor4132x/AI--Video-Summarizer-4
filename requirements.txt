@@ -1,10 +1,34 @@
+# --- Web framework ---
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
+
+# --- Database (MongoDB via Beanie/Motor) ---
 motor==3.7.1
 beanie==1.29.0
+
+# --- Auth ---
 python-jose[cryptography]==3.3.0
 bcrypt==4.2.0
 python-multipart==0.0.9
+
+# --- Config ---
 python-dotenv==1.0.1
 pydantic-settings==2.5.2
 email-validator==2.2.0
+
+# --- Local AI pipeline (no external API key required for anything) ---
+openai-whisper      # transcription (local)
+transformers        # local summarization (BART) + local translation (NLLB)
+torch                # required by transformers/whisper
+scikit-learn         # TF-IDF retrieval for local, extractive Q&A
+sentencepiece        # tokenizer backend required by NLLB
+
+yt-dlp              # Resolve public YouTube Live streams for FFmpeg (Real-Time Workspace)
+
+# --- PDF export ---
+fpdf2==2.8.8
+
+# --- Testing ---
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2

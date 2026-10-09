@@ -1,0 +1,5 @@
+# Additional dependencies needed only to run the test suite (tests/) --
+# not required to run the application itself.
+-r requirements.txt
+mongomock-motor==0.0.35
+mongomock==4.3.0
