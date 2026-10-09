@@ -60,7 +60,7 @@ AI--Video-Summarizer-4/
 │   ├── database-design.md
 │   ├── database-documentation.md
 │   ├── frontend-documentation.md
-│   └── ClipMind-AI-Frontend-Documentation.pdf
+│   └── Harika_Documentation.pdf
 ├── .gitignore
 └── README.md
 ```
@@ -109,7 +109,7 @@ My primary responsibility was Frontend Development and Analytics Dashboard. My w
 ## 📚 Documentation
 
 * [Frontend Documentation](docs/frontend-documentation.md)
-* [Frontend Documentation PDF](docs/ClipMind-AI-Frontend-Documentation.pdf)
+* [Frontend Documentation PDF](docs/Harika_Documentation.pdf)
 * [Database Design](docs/database-design.md)
 * [Database Documentation](docs/database-documentation.md)
 
